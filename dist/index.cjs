@@ -48518,74 +48518,6 @@ stderr: ${stderrOutput}`
 
 // src/util.ts
 var COMMENT_MARKER = "<!-- issue-dedup-action -->";
-var STOPWORDS = /* @__PURE__ */ new Set([
-  "the",
-  "a",
-  "an",
-  "is",
-  "are",
-  "was",
-  "were",
-  "be",
-  "been",
-  "being",
-  "in",
-  "on",
-  "of",
-  "to",
-  "for",
-  "and",
-  "or",
-  "not",
-  "no",
-  "with",
-  "when",
-  "after",
-  "before",
-  "while",
-  "it",
-  "its",
-  "this",
-  "that",
-  "these",
-  "those",
-  "can",
-  "cannot",
-  "cant",
-  "does",
-  "doesnt",
-  "do",
-  "dont",
-  "at",
-  "by",
-  "from",
-  "as",
-  "if",
-  "but",
-  "how",
-  "why",
-  "what",
-  "will",
-  "wont",
-  "should",
-  "would",
-  "could",
-  "has",
-  "have",
-  "had",
-  "using",
-  "use",
-  "via",
-  "get",
-  "gets",
-  "issue",
-  "bug",
-  "error"
-]);
-function extractKeywords(title, max = 6) {
-  const words = title.toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9\s_-]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOPWORDS.has(w));
-  return [...new Set(words)].slice(0, max);
-}
 function chunk(items, size) {
   const out = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
@@ -48848,17 +48780,17 @@ async function listCandidates(octokit, repo, opts) {
     });
     collected.push(...data.filter((i) => !i.pull_request).map(toLite));
   }
-  const keywords = extractKeywords(opts.title);
-  if (keywords.length) {
+  const searchText = opts.title.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, " ").replace(/\s+/g, " ").trim();
+  if (searchText) {
     const qualifiers = [`repo:${repo.owner}/${repo.repo}`, "is:issue"];
     if (opts.state !== "all") qualifiers.push(`state:${opts.state}`);
-    const q = [...qualifiers, ...keywords].join(" ");
+    const q = [...qualifiers, searchText].join(" ");
     debug(`search query: ${q}`);
     try {
-      const { data } = await octokit.rest.search.issuesAndPullRequests({
+      const { data } = await octokit.request("GET /search/issues", {
         q,
         per_page: Math.min(opts.count, 100),
-        advanced_search: "true"
+        search_type: "hybrid"
       });
       collected.push(...data.items.filter((i) => !i.pull_request).map(toLite));
     } catch (err) {

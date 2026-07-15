@@ -7,7 +7,7 @@ Inspired by [pelikhan/action-genai-issue-dedup](https://github.com/pelikhan/acti
 ## How it works
 
 1. **Label classification** (optional, `labels: auto`) — a small model classifies the issue against the repository's labels; the result filters the candidate set.
-2. **Candidate retrieval** — recently updated issues (filtered by state/labels/date) merged with a keyword search on the issue title.
+2. **Candidate retrieval** — recently updated issues (filtered by state/labels/date) merged with GitHub's hybrid semantic/keyword search on the full issue title.
 3. **Batch detection** — a small model compares the issue against candidates in batches and returns a structured verdict (`DUP`/`UNI`) with reasoning for each.
 4. **Confirmation** — each suspected duplicate is re-checked by a stronger model before being reported (disable with `confirm_duplicates: false`).
 5. **Reporting** — outputs, a job summary, an upserted issue comment (one comment, updated on re-runs — never stacked), and optionally the `duplicate` label.

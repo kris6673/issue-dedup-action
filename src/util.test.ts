@@ -4,22 +4,9 @@ import {
   COMMENT_MARKER,
   buildCommentBody,
   chunk,
-  extractKeywords,
   scrubbedEnv,
   truncate,
 } from "./util.ts";
-
-test("extractKeywords drops stopwords, punctuation and dupes", () => {
-  assert.deepEqual(
-    extractKeywords("Error: the login button doesn't work on mobile login"),
-    ["login", "button", "work", "mobile"],
-  );
-});
-
-test("extractKeywords caps the number of keywords", () => {
-  const kw = extractKeywords("alpha bravo charlie delta echo foxtrot golf hotel");
-  assert.equal(kw.length, 6);
-});
 
 test("chunk splits into groups with remainder", () => {
   assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);

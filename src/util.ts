@@ -7,27 +7,6 @@ export interface Duplicate {
   reasoning: string;
 }
 
-const STOPWORDS = new Set([
-  "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-  "in", "on", "of", "to", "for", "and", "or", "not", "no", "with",
-  "when", "after", "before", "while", "it", "its", "this", "that",
-  "these", "those", "can", "cannot", "cant", "does", "doesnt", "do",
-  "dont", "at", "by", "from", "as", "if", "but", "how", "why", "what",
-  "will", "wont", "should", "would", "could", "has", "have", "had",
-  "using", "use", "via", "get", "gets", "issue", "bug", "error",
-]);
-
-/** Keywords from an issue title for a GitHub search query. */
-export function extractKeywords(title: string, max = 6): string[] {
-  const words = title
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9\s_-]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 2 && !STOPWORDS.has(w));
-  return [...new Set(words)].slice(0, max);
-}
-
 export function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));

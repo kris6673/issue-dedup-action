@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { upsertComment, type Octokit } from "./github.ts";
+import { listCandidates, upsertComment, type Octokit } from "./github.ts";
 import { COMMENT_MARKER } from "./util.ts";
 
 const repo = { owner: "owner", repo: "repo" };
@@ -50,4 +50,33 @@ test("matches marker comment logins case-insensitively", async () => {
   const { octokit, calls } = mockOctokit("Alice", "aLiCe", "User");
   assert.equal(await upsertComment(octokit, repo, 1, "body"), "updated");
   assert.deepEqual(calls, { created: 0, updated: 1 });
+});
+
+test("uses the full title with GitHub hybrid issue search", async () => {
+  let requestOptions: Record<string, unknown> | undefined;
+  const octokit = {
+    request: async (_route: string, options: Record<string, unknown>) => {
+      requestOptions = options;
+      return { data: { items: [] } };
+    },
+    rest: {
+      issues: {
+        listForRepo: async () => ({ data: [] }),
+      },
+    },
+  } as unknown as Octokit;
+
+  await listCandidates(octokit, repo, {
+    state: "open",
+    labels: [],
+    count: 30,
+    exclude: 1,
+    title: "Authentication error when using Azure login",
+  });
+
+  assert.deepEqual(requestOptions, {
+    q: "repo:owner/repo is:issue state:open authentication error when using azure login",
+    per_page: 30,
+    search_type: "hybrid",
+  });
 });

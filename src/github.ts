@@ -1,6 +1,6 @@
 import type { getOctokit } from "@actions/github";
 import * as core from "@actions/core";
-import { COMMENT_MARKER, extractKeywords } from "./util.ts";
+import { COMMENT_MARKER } from "./util.ts";
 
 export type Octokit = ReturnType<typeof getOctokit>;
 
@@ -47,8 +47,9 @@ export interface CandidateOptions {
 
 /**
  * Candidate issues to compare against: recently-updated issues (optionally
- * per label, mirroring the upstream action) merged with a keyword search on
- * the new issue's title, deduped and capped at `count`.
+ * per label, mirroring the upstream action) merged with GitHub's hybrid
+ * semantic/keyword search on the new issue's title, deduped and capped at
+ * `count`.
  */
 export async function listCandidates(
   octokit: Octokit,
@@ -70,17 +71,21 @@ export async function listCandidates(
     collected.push(...data.filter((i) => !i.pull_request).map(toLite));
   }
 
-  const keywords = extractKeywords(opts.title);
-  if (keywords.length) {
+  const searchText = opts.title
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (searchText) {
     const qualifiers = [`repo:${repo.owner}/${repo.repo}`, "is:issue"];
     if (opts.state !== "all") qualifiers.push(`state:${opts.state}`);
-    const q = [...qualifiers, ...keywords].join(" ");
+    const q = [...qualifiers, searchText].join(" ");
     core.debug(`search query: ${q}`);
     try {
-      const { data } = await octokit.rest.search.issuesAndPullRequests({
+      const { data } = await octokit.request("GET /search/issues", {
         q,
         per_page: Math.min(opts.count, 100),
-        advanced_search: "true",
+        search_type: "hybrid",
       });
       collected.push(...data.items.filter((i) => !i.pull_request).map(toLite));
     } catch (err) {
