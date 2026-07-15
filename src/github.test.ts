@@ -1,0 +1,53 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { upsertComment, type Octokit } from "./github.ts";
+import { COMMENT_MARKER } from "./util.ts";
+
+const repo = { owner: "owner", repo: "repo" };
+
+function mockOctokit(viewerLogin: string, commentLogin: string, type: "Bot" | "User") {
+  const calls = { created: 0, updated: 0 };
+  const listComments = () => undefined;
+  const octokit = {
+    graphql: async () => ({ viewer: { login: viewerLogin } }),
+    paginate: async () => [
+      { id: 1, body: COMMENT_MARKER, user: { login: commentLogin, type } },
+    ],
+    rest: {
+      issues: {
+        listComments,
+        updateComment: async () => {
+          calls.updated++;
+        },
+        createComment: async () => {
+          calls.created++;
+        },
+      },
+    },
+  } as unknown as Octokit;
+  return { octokit, calls };
+}
+
+test("updates a PAT user's marker comment", async () => {
+  const { octokit, calls } = mockOctokit("alice", "alice", "User");
+  assert.equal(await upsertComment(octokit, repo, 1, "body"), "updated");
+  assert.deepEqual(calls, { created: 0, updated: 1 });
+});
+
+test("updates a GITHUB_TOKEN bot's marker comment", async () => {
+  const { octokit, calls } = mockOctokit("github-actions[bot]", "github-actions[bot]", "Bot");
+  assert.equal(await upsertComment(octokit, repo, 1, "body"), "updated");
+  assert.deepEqual(calls, { created: 0, updated: 1 });
+});
+
+test("creates a comment when the marker belongs to another identity", async () => {
+  const { octokit, calls } = mockOctokit("alice", "mallory", "User");
+  assert.equal(await upsertComment(octokit, repo, 1, "body"), "created");
+  assert.deepEqual(calls, { created: 1, updated: 0 });
+});
+
+test("matches marker comment logins case-insensitively", async () => {
+  const { octokit, calls } = mockOctokit("Alice", "aLiCe", "User");
+  assert.equal(await upsertComment(octokit, repo, 1, "body"), "updated");
+  assert.deepEqual(calls, { created: 0, updated: 1 });
+});

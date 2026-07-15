@@ -1,7 +1,7 @@
 name: Issue dedup
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -17,6 +17,7 @@ concurrency:
 jobs:
   dedup:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: ./

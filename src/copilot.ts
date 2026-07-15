@@ -12,6 +12,7 @@ import {
 } from "@github/copilot-sdk";
 import type { ProviderConfig } from "@github/copilot-sdk";
 import type { ZodType } from "zod";
+import { scrubbedEnv } from "./util.ts";
 
 const RESULT_TOOL = "report_result";
 
@@ -24,19 +25,27 @@ let client: CopilotClient | null = null;
  * the SDK's own require.resolve lookup does not survive esbuild bundling.
  */
 async function installCli(version: string): Promise<string> {
-  const prefix = join(process.env.RUNNER_TEMP ?? tmpdir(), "issue-dedup-copilot-cli");
+  // Version in the dir name: a cached install can never satisfy a different pin.
+  const prefix = join(process.env.RUNNER_TEMP ?? tmpdir(), `issue-dedup-copilot-cli-${version}`);
   const loader = join(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
   if (!existsSync(loader)) {
     core.info(`Installing @github/copilot@${version}`);
-    await exec("npm", [
-      "install",
-      "--prefix",
-      prefix,
-      "--no-audit",
-      "--no-fund",
-      "--loglevel=error",
-      `@github/copilot@${version}`,
-    ]);
+    await exec(
+      "npm",
+      [
+        "install",
+        "--prefix",
+        prefix,
+        "--no-audit",
+        "--no-fund",
+        // The CLI packages have no lifecycle scripts (verified at 1.0.70);
+        // disabling them means a compromised release can't run code at install.
+        "--ignore-scripts",
+        "--loglevel=error",
+        `@github/copilot@${version}`,
+      ],
+      { env: scrubbedEnv(process.env) as Record<string, string> },
+    );
   }
   return loader;
 }
@@ -51,6 +60,9 @@ export async function startCopilot(opts: {
     gitHubToken: opts.token,
     useLoggedInUser: false,
     logLevel: "error",
+    // The CLI subprocess gets a scrubbed env: no INPUT_* or credential vars.
+    // Auth comes from gitHubToken above, injected by the SDK itself.
+    env: scrubbedEnv(process.env),
   });
   await client.start();
 }

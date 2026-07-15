@@ -106,15 +106,26 @@ export async function upsertComment(
   body: string,
   { onlyUpdate = false } = {},
 ): Promise<"created" | "updated" | "skipped"> {
+  const { viewer } = await octokit.graphql<{ viewer: { login: string } }>(
+    "query { viewer { login } }",
+  );
   const comments = await octokit.paginate(octokit.rest.issues.listComments, {
     ...repo,
     issue_number,
     per_page: 100,
   });
-  const existing = comments.find((c) => c.body?.includes(COMMENT_MARKER));
+  const existing = comments.find(
+    (c) =>
+      c.body?.includes(COMMENT_MARKER) &&
+      c.user?.login.toLowerCase() === viewer.login.toLowerCase(),
+  );
   if (existing) {
-    await octokit.rest.issues.updateComment({ ...repo, comment_id: existing.id, body });
-    return "updated";
+    try {
+      await octokit.rest.issues.updateComment({ ...repo, comment_id: existing.id, body });
+      return "updated";
+    } catch (err) {
+      core.warning(`Could not update marker comment ${existing.id}, creating a new one: ${err}`);
+    }
   }
   if (onlyUpdate) return "skipped";
   await octokit.rest.issues.createComment({ ...repo, issue_number, body });
