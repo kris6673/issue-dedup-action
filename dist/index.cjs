@@ -48768,7 +48768,12 @@ function parseJsonLoose(text, label) {
 // src/github.ts
 async function getIssue(octokit, repo, issue_number) {
   const { data } = await octokit.rest.issues.get({ ...repo, issue_number });
-  return toLite(data);
+  return {
+    ...toLite(data),
+    labels: (data.labels ?? []).map(
+      (label) => typeof label === "string" ? label : label.name ?? ""
+    )
+  };
 }
 async function listRepoLabels(octokit, repo) {
   const labels = await octokit.paginate(octokit.rest.issues.listLabelsForRepo, {
@@ -48837,6 +48842,14 @@ async function upsertComment(octokit, repo, issue_number, body, { onlyUpdate = f
 }
 async function addDuplicateLabel(octokit, repo, issue_number) {
   await octokit.rest.issues.addLabels({ ...repo, issue_number, labels: ["duplicate"] });
+}
+async function removeDuplicateLabel(octokit, repo, issue_number) {
+  try {
+    await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
+  } catch (err) {
+    if (err.status === 404) return;
+    warning(`Could not remove duplicate label: ${err}`);
+  }
 }
 function toLite(i) {
   return { number: i.number, title: i.title, body: i.body ?? "", html_url: i.html_url };
@@ -49018,15 +49031,21 @@ async function main() {
   } else {
     info("No duplicates found.");
   }
+  let commentResult = "skipped";
   if (comment) {
-    const result = await upsertComment(octokit, repo, issue3.number, buildCommentBody(duplicates), {
+    commentResult = await upsertComment(octokit, repo, issue3.number, buildCommentBody(duplicates), {
       onlyUpdate: duplicates.length === 0
     });
-    info(`Comment ${result}.`);
+    info(`Comment ${commentResult}.`);
   }
-  if (labelAsDuplicate && duplicates.length) {
-    await addDuplicateLabel(octokit, repo, issue3.number);
-    info("Added `duplicate` label.");
+  if (labelAsDuplicate) {
+    if (duplicates.length) {
+      await addDuplicateLabel(octokit, repo, issue3.number);
+      info("Added `duplicate` label.");
+    } else if (issue3.labels.includes("duplicate") && commentResult === "updated") {
+      await removeDuplicateLabel(octokit, repo, issue3.number);
+      info("Removed stale `duplicate` label.");
+    }
   }
   if (process.env.GITHUB_STEP_SUMMARY) {
     summary.addHeading("Issue deduplication", 3);

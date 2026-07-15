@@ -16,13 +16,22 @@ export interface IssueLite {
   html_url: string;
 }
 
+export interface IssueFull extends IssueLite {
+  labels: string[];
+}
+
 export async function getIssue(
   octokit: Octokit,
   repo: RepoRef,
   issue_number: number,
-): Promise<IssueLite> {
+): Promise<IssueFull> {
   const { data } = await octokit.rest.issues.get({ ...repo, issue_number });
-  return toLite(data);
+  return {
+    ...toLite(data),
+    labels: (data.labels ?? []).map((label) =>
+      typeof label === "string" ? label : (label.name ?? ""),
+    ),
+  };
 }
 
 export async function listRepoLabels(
@@ -143,6 +152,19 @@ export async function addDuplicateLabel(
   issue_number: number,
 ): Promise<void> {
   await octokit.rest.issues.addLabels({ ...repo, issue_number, labels: ["duplicate"] });
+}
+
+export async function removeDuplicateLabel(
+  octokit: Octokit,
+  repo: RepoRef,
+  issue_number: number,
+): Promise<void> {
+  try {
+    await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
+  } catch (err: unknown) {
+    if ((err as { status?: number }).status === 404) return;
+    core.warning(`Could not remove duplicate label: ${err}`);
+  }
 }
 
 function toLite(i: {
