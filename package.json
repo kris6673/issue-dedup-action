@@ -1,6 +1,6 @@
 {
   "name": "issue-dedup-action",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "GitHub Action that detects duplicate issues using the Copilot SDK.",
   "license": "MIT",

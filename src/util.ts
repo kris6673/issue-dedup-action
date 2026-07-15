@@ -17,6 +17,70 @@ export function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}\n[...truncated]` : text;
 }
 
+export function parseNonNegativeInteger(value: string, name: string): number {
+  const trimmed = value.trim();
+  if (!/^(?:0|[1-9]\d*)$/.test(trimmed)) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${name} must be a safe non-negative integer`);
+  }
+  return parsed;
+}
+
+export function reconcileIssueVerdicts<T extends { issue_number: number }>(
+  expectedIssueNumbers: number[],
+  verdicts: T[],
+): {
+  byIssueNumber: Map<number, T>;
+  unknownIssueNumbers: number[];
+  ambiguousIssueNumbers: number[];
+  missingIssueNumbers: number[];
+} {
+  const expected = new Set(expectedIssueNumbers);
+  const byIssueNumber = new Map<number, T>();
+  const unknown = new Set<number>();
+  const ambiguous = new Set<number>();
+
+  for (const verdict of verdicts) {
+    const number = verdict.issue_number;
+    if (!expected.has(number)) {
+      unknown.add(number);
+    } else if (byIssueNumber.has(number) || ambiguous.has(number)) {
+      byIssueNumber.delete(number);
+      ambiguous.add(number);
+    } else {
+      byIssueNumber.set(number, verdict);
+    }
+  }
+
+  return {
+    byIssueNumber,
+    unknownIssueNumbers: [...unknown],
+    ambiguousIssueNumbers: expectedIssueNumbers.filter((number) => ambiguous.has(number)),
+    missingIssueNumbers: expectedIssueNumbers.filter(
+      (number) => !byIssueNumber.has(number) && !ambiguous.has(number),
+    ),
+  };
+}
+
+export function shouldFlushSuspects(
+  suspectCount: number,
+  remainingSlots: number,
+  minimumBatch: number,
+): boolean {
+  return remainingSlots > 0 && suspectCount >= Math.max(remainingSlots, minimumBatch);
+}
+
+export function confirmationBatchSize(
+  remainingSlots: number,
+  minimumBatch: number,
+  maximumBatch: number,
+): number {
+  return Math.min(maximumBatch, Math.max(minimumBatch, remainingSlots * 2));
+}
+
 /**
  * Copy of the env for child processes (npm install, the Copilot CLI) with
  * action inputs and credential-looking variables removed, so a compromised
@@ -37,15 +101,7 @@ export function scrubbedEnv(
 }
 
 export function sinceDaysToISOString(sinceDays: string, now = Date.now()): string {
-  const trimmed = sinceDays.trim();
-  if (!/^(?:0|[1-9]\d*)$/.test(trimmed)) {
-    throw new Error("since_days must be a non-negative integer");
-  }
-
-  const days = Number(trimmed);
-  if (!Number.isSafeInteger(days)) {
-    throw new Error("since_days must be a safe non-negative integer");
-  }
+  const days = parseNonNegativeInteger(sinceDays, "since_days");
 
   const date = new Date(now - days * 86400000);
   if (Number.isNaN(date.getTime())) {

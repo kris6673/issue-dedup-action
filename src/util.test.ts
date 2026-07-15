@@ -4,8 +4,12 @@ import {
   COMMENT_MARKER,
   buildCommentBody,
   chunk,
+  confirmationBatchSize,
   normalizeCopilotCliVersion,
+  parseNonNegativeInteger,
+  reconcileIssueVerdicts,
   scrubbedEnv,
+  shouldFlushSuspects,
   sinceDaysToISOString,
   truncate,
 } from "./util.ts";
@@ -18,6 +22,37 @@ test("chunk splits into groups with remainder", () => {
 test("truncate only cuts long text", () => {
   assert.equal(truncate("short", 100), "short");
   assert.match(truncate("x".repeat(200), 100), /truncated/);
+});
+
+test("parseNonNegativeInteger rejects partial, negative, and unsafe values", () => {
+  assert.equal(parseNonNegativeInteger(" 3 ", "max_duplicates"), 3);
+  assert.equal(parseNonNegativeInteger("0", "max_duplicates"), 0);
+  for (const value of ["three", "3x", "-1", "1.5", "9007199254740992"]) {
+    assert.throws(() => parseNonNegativeInteger(value, "max_duplicates"), /max_duplicates/);
+  }
+});
+
+test("reconcileIssueVerdicts fails closed for malformed model output", () => {
+  const one = { issue_number: 1, verdict: "DUP" };
+  const conflicting = { issue_number: 2, verdict: "UNI" };
+  const result = reconcileIssueVerdicts(
+    [1, 2, 3],
+    [one, conflicting, { issue_number: 2, verdict: "DUP" }, { issue_number: 99, verdict: "DUP" }],
+  );
+
+  assert.deepEqual([...result.byIssueNumber.entries()], [[1, one]]);
+  assert.deepEqual(result.unknownIssueNumbers, [99]);
+  assert.deepEqual(result.ambiguousIssueNumbers, [2]);
+  assert.deepEqual(result.missingIssueNumbers, [3]);
+});
+
+test("confirmation gating batches suspects without unbounded prompts", () => {
+  assert.equal(shouldFlushSuspects(4, 3, 5), false);
+  assert.equal(shouldFlushSuspects(5, 3, 5), true);
+  assert.equal(shouldFlushSuspects(5, 0, 5), false);
+  assert.equal(confirmationBatchSize(3, 5, 15), 6);
+  assert.equal(confirmationBatchSize(1, 5, 15), 5);
+  assert.equal(confirmationBatchSize(10, 5, 15), 15);
 });
 
 test("sinceDaysToISOString accepts finite non-negative integers", () => {
