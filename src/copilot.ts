@@ -12,11 +12,7 @@ import {
 } from "@github/copilot-sdk";
 import type { ProviderConfig } from "@github/copilot-sdk";
 import type { ZodType } from "zod";
-<<<<<<< HEAD
 import { normalizeCopilotCliVersion, scrubbedEnv } from "./util.ts";
-=======
-import { scrubbedEnv } from "./util.ts";
->>>>>>> origin/main
 
 const RESULT_TOOL = "report_result";
 
@@ -195,20 +191,12 @@ export function logUsage(): void {
  * the SDK's own require.resolve lookup does not survive esbuild bundling.
  */
 async function installCli(version: string): Promise<string> {
-<<<<<<< HEAD
   const exactVersion = normalizeCopilotCliVersion(version);
   // Version in the dir name: a cached install can never satisfy a different pin.
   const prefix = join(process.env.RUNNER_TEMP ?? tmpdir(), `issue-dedup-copilot-cli-${exactVersion}`);
   const loader = join(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
   if (!existsSync(loader)) {
     core.info(`Installing @github/copilot@${exactVersion}`);
-=======
-  // Version in the dir name: a cached install can never satisfy a different pin.
-  const prefix = join(process.env.RUNNER_TEMP ?? tmpdir(), `issue-dedup-copilot-cli-${version}`);
-  const loader = join(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
-  if (!existsSync(loader)) {
-    core.info(`Installing @github/copilot@${version}`);
->>>>>>> origin/main
     await exec(
       "npm",
       [
@@ -221,11 +209,7 @@ async function installCli(version: string): Promise<string> {
         // disabling them means a compromised release can't run code at install.
         "--ignore-scripts",
         "--loglevel=error",
-<<<<<<< HEAD
         `@github/copilot@${exactVersion}`,
-=======
-        `@github/copilot@${version}`,
->>>>>>> origin/main
       ],
       { env: scrubbedEnv(process.env) as Record<string, string> },
     );

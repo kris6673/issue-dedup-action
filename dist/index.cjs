@@ -48605,7 +48605,6 @@ function scrubbedEnv(env) {
   }
   return out;
 }
-<<<<<<< HEAD
 function normalizeCopilotCliVersion(version2) {
   const trimmed = version2.trim();
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(trimmed)) {
@@ -48615,8 +48614,6 @@ function normalizeCopilotCliVersion(version2) {
   }
   return trimmed;
 }
-=======
->>>>>>> origin/main
 function buildCommentBody(duplicates) {
   const footer = `<sub>Detected automatically by [issue-dedup-action](https://github.com/kris6673/issue-dedup-action)</sub>`;
   if (!duplicates.length) {
@@ -48637,14 +48634,6 @@ ${footer}`;
 // src/copilot.ts
 var RESULT_TOOL = "report_result";
 var client = null;
-<<<<<<< HEAD
-async function installCli(version2) {
-  const exactVersion = normalizeCopilotCliVersion(version2);
-  const prefix = (0, import_node_path2.join)(process.env.RUNNER_TEMP ?? (0, import_node_os.tmpdir)(), `issue-dedup-copilot-cli-${exactVersion}`);
-  const loader = (0, import_node_path2.join)(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
-  if (!(0, import_node_fs2.existsSync)(loader)) {
-    info(`Installing @github/copilot@${exactVersion}`);
-=======
 function emptyModelUsage() {
   return {
     calls: 0,
@@ -48750,11 +48739,11 @@ function logUsage() {
   for (const detail of formatUsageDebug(usage)) debug(detail);
 }
 async function installCli(version2) {
-  const prefix = (0, import_node_path2.join)(process.env.RUNNER_TEMP ?? (0, import_node_os.tmpdir)(), `issue-dedup-copilot-cli-${version2}`);
+  const exactVersion = normalizeCopilotCliVersion(version2);
+  const prefix = (0, import_node_path2.join)(process.env.RUNNER_TEMP ?? (0, import_node_os.tmpdir)(), `issue-dedup-copilot-cli-${exactVersion}`);
   const loader = (0, import_node_path2.join)(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
   if (!(0, import_node_fs2.existsSync)(loader)) {
-    info(`Installing @github/copilot@${version2}`);
->>>>>>> origin/main
+    info(`Installing @github/copilot@${exactVersion}`);
     await exec(
       "npm",
       [
@@ -48767,11 +48756,7 @@ async function installCli(version2) {
         // disabling them means a compromised release can't run code at install.
         "--ignore-scripts",
         "--loglevel=error",
-<<<<<<< HEAD
         `@github/copilot@${exactVersion}`
-=======
-        `@github/copilot@${version2}`
->>>>>>> origin/main
       ],
       { env: scrubbedEnv(process.env) }
     );
@@ -48779,10 +48764,7 @@ async function installCli(version2) {
   return loader;
 }
 async function startCopilot(opts) {
-<<<<<<< HEAD
-=======
   usage = emptyUsageSummary();
->>>>>>> origin/main
   const cliPath = await installCli(opts.cliVersion);
   client = new CopilotClient({
     connection: RuntimeConnection.forStdio({ path: cliPath }),
@@ -48827,15 +48809,12 @@ async function runStructured(opts) {
     }
     return opts.schema.parse(captured);
   } finally {
-<<<<<<< HEAD
-=======
     await collectUsageMetrics(
       usage,
       () => session.rpc.usage.getMetrics(),
       Boolean(opts.provider),
       opts.label
     );
->>>>>>> origin/main
     await session.disconnect().catch(() => {
     });
   }
@@ -48912,11 +48891,7 @@ async function upsertComment(octokit, repo, issue_number, body, { onlyUpdate = f
     per_page: 100
   });
   const existing = comments.find(
-<<<<<<< HEAD
-    (c) => c.body?.includes(COMMENT_MARKER) && c.user?.type === "Bot"
-=======
     (c) => c.body?.includes(COMMENT_MARKER) && c.user?.login.toLowerCase() === viewer.login.toLowerCase()
->>>>>>> origin/main
   );
   if (existing) {
     try {

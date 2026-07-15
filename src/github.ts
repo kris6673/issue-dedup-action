@@ -121,17 +121,10 @@ export async function upsertComment(
     issue_number,
     per_page: 100,
   });
-<<<<<<< HEAD
-  // Author check: anyone can paste the public marker into a comment; only a
-  // Bot-authored one (github-actions[bot] for GITHUB_TOKEN runs) counts as ours.
-  const existing = comments.find(
-    (c) => c.body?.includes(COMMENT_MARKER) && c.user?.type === "Bot",
-=======
   const existing = comments.find(
     (c) =>
       c.body?.includes(COMMENT_MARKER) &&
       c.user?.login.toLowerCase() === viewer.login.toLowerCase(),
->>>>>>> origin/main
   );
   if (existing) {
     try {
