@@ -155,21 +155,6 @@ export async function addDuplicateLabel(
   await octokit.rest.issues.addLabels({ ...repo, issue_number, labels: ["duplicate"] });
 }
 
-export async function removeDuplicateLabel(
-  octokit: Octokit,
-  repo: RepoRef,
-  issue_number: number,
-): Promise<boolean> {
-  try {
-    await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
-    return true;
-  } catch (err: unknown) {
-    if ((err as { status?: number } | null)?.status === 404) return true;
-    core.warning(`Could not remove duplicate label: ${err}`);
-    return false;
-  }
-}
-
 function toLite(i: {
   number: number;
   title: string;
