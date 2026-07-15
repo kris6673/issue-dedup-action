@@ -28,9 +28,10 @@ export async function getIssue(
   const { data } = await octokit.rest.issues.get({ ...repo, issue_number });
   return {
     ...toLite(data),
-    labels: (data.labels ?? []).map((label) =>
-      typeof label === "string" ? label : (label.name ?? ""),
-    ),
+    labels: (data.labels ?? []).flatMap((label) => {
+      const name = typeof label === "string" ? label : label.name;
+      return name ? [name] : [];
+    }),
   };
 }
 
@@ -158,12 +159,14 @@ export async function removeDuplicateLabel(
   octokit: Octokit,
   repo: RepoRef,
   issue_number: number,
-): Promise<void> {
+): Promise<boolean> {
   try {
     await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
+    return true;
   } catch (err: unknown) {
-    if ((err as { status?: number }).status === 404) return;
+    if ((err as { status?: number } | null)?.status === 404) return true;
     core.warning(`Could not remove duplicate label: ${err}`);
+    return false;
   }
 }
 

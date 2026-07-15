@@ -69,7 +69,7 @@ test("reads issue labels and removes the duplicate label", async () => {
             title: "Issue",
             body: null,
             html_url: "https://example.test/1",
-            labels: ["bug", { name: "duplicate" }],
+            labels: ["bug", {}, { name: "duplicate" }],
           },
         }),
         removeLabel: async (options: Record<string, unknown>) => {
@@ -81,7 +81,7 @@ test("reads issue labels and removes the duplicate label", async () => {
 
   const issue = await getIssue(octokit, repo, 1);
   assert.deepEqual(issue.labels, ["bug", "duplicate"]);
-  await removeDuplicateLabel(octokit, repo, issue.number);
+  assert.equal(await removeDuplicateLabel(octokit, repo, issue.number), true);
   assert.deepEqual(removed, { ...repo, issue_number: 1, name: "duplicate" });
 });
 
@@ -96,7 +96,21 @@ test("treats an already-absent duplicate label as success", async () => {
     },
   } as unknown as Octokit;
 
-  await assert.doesNotReject(removeDuplicateLabel(octokit, repo, 1));
+  assert.equal(await removeDuplicateLabel(octokit, repo, 1), true);
+});
+
+test("reports a non-object duplicate label removal failure", async () => {
+  const octokit = {
+    rest: {
+      issues: {
+        removeLabel: async () => {
+          throw null;
+        },
+      },
+    },
+  } as unknown as Octokit;
+
+  assert.equal(await removeDuplicateLabel(octokit, repo, 1), false);
 });
 
 test("uses the full title with GitHub hybrid issue search", async () => {

@@ -235,8 +235,9 @@ async function main(): Promise<void> {
       await addDuplicateLabel(octokit, repo, issue.number);
       core.info("Added `duplicate` label.");
     } else if (issue.labels.includes("duplicate") && commentResult === "updated") {
-      await removeDuplicateLabel(octokit, repo, issue.number);
-      core.info("Removed stale `duplicate` label.");
+      if (await removeDuplicateLabel(octokit, repo, issue.number)) {
+        core.info("Removed stale `duplicate` label.");
+      }
     }
   }
 
