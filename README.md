@@ -61,7 +61,7 @@ jobs:
 | `label_as_duplicate` | `false`           | Keep the `duplicate` label in sync with updated results                  |
 | `model`              | `gpt-5-mini`      | Model for classification and batch detection                             |
 | `confirm_model`      | `claude-sonnet-5` | Model for confirmation                                                   |
-| `cli_version`        | `1.0.70` (pinned) | Exact `@github/copilot` CLI version to install                           |
+| `cli_version`        | `1.0.70` (pinned) | Exact `@github/copilot` CLI version, or `latest`                          |
 | `byok_base_url`      |                   | BYOK: your own endpoint base URL (skips Copilot billing)                 |
 | `byok_api_key`       |                   | BYOK: API key for that endpoint                                          |
 | `byok_type`          | `openai`          | BYOK: `openai`, `azure`, or `anthropic`                                  |
@@ -91,7 +91,7 @@ Set the repository or organization secret `ACTIONS_STEP_DEBUG` to `true` to also
       if: github.event.action != 'edited' || contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
   ```
 
-- **The Copilot CLI is installed at runtime, pinned to an exact version** with lifecycle scripts disabled, and both the installer and the CLI subprocess run with action inputs and credential-like variables scrubbed from their environment. Overriding `cli_version` moves that pin — do it deliberately.
+- **The Copilot CLI is installed at runtime, pinned to an exact version by default** with lifecycle scripts disabled, and both the installer and the CLI subprocess run with action inputs and credential-like variables scrubbed from their environment. Set `cli_version: latest` to opt into automatic updates, trading reproducibility for freshness.
 - The action only trusts marker comments authored by the identity associated with `github_token` when updating previous results; comments from other users or bots containing the marker are ignored.
 
 ## BYOK

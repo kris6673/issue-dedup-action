@@ -19,13 +19,13 @@ test("truncate only cuts long text", () => {
   assert.match(truncate("x".repeat(200), 100), /truncated/);
 });
 
-test("normalizeCopilotCliVersion accepts only exact versions", () => {
-  for (const version of ["1.0.70", "1.0.70-alpha-beta.1", "1.0.70+build.1"]) {
+test("normalizeCopilotCliVersion accepts latest or exact versions", () => {
+  for (const version of ["latest", "1.0.70", "1.0.70-alpha-beta.1", "1.0.70+build.1"]) {
     assert.equal(normalizeCopilotCliVersion(` ${version} `), version);
   }
 
   for (const version of [
-    "latest",
+    "prerelease",
     "^1.0.70",
     "~1.0.70",
     "1",
@@ -35,7 +35,7 @@ test("normalizeCopilotCliVersion accepts only exact versions", () => {
     "file:/tmp/pkg.tgz",
     "https://example.com/pkg.tgz",
   ]) {
-    assert.throws(() => normalizeCopilotCliVersion(version), /cli_version must be an exact/);
+    assert.throws(() => normalizeCopilotCliVersion(version), /cli_version must be 'latest' or an exact/);
   }
 });
 
