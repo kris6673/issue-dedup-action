@@ -6,7 +6,7 @@ branding:
 inputs:
   github_token:
     description: >-
-      GitHub token. In workflows use `${{ secrets.GITHUB_TOKEN }}` with
+      GitHub token. In workflows use `GITHUB_TOKEN` with
       `copilot-requests: write` and `issues: write` permissions.
     required: true
   github_issue:
