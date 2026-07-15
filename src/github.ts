@@ -155,7 +155,8 @@ export async function removeDuplicateLabel(
   try {
     await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
   } catch (err: unknown) {
-    // 404 = label already absent; anything else still shouldn't fail the run.
+    // 404 = label already absent, which is fine on reruns; anything else still shouldn't fail the run.
+    if ((err as { status?: number }).status === 404) return;
     core.warning(`Could not remove duplicate label: ${err}`);
   }
 }

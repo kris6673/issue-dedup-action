@@ -48607,7 +48607,7 @@ function scrubbedEnv(env) {
 }
 function normalizeCopilotCliVersion(version2) {
   const trimmed = version2.trim();
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(trimmed)) {
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$/.test(trimmed)) {
     throw new Error(
       "cli_version must be an exact @github/copilot version, for example 1.0.70; tags, ranges, URLs, and file paths are not allowed"
     );
@@ -48912,6 +48912,7 @@ async function removeDuplicateLabel(octokit, repo, issue_number) {
   try {
     await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
   } catch (err) {
+    if (err.status === 404) return;
     warning(`Could not remove duplicate label: ${err}`);
   }
 }

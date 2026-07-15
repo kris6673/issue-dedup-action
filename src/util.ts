@@ -59,7 +59,7 @@ export function scrubbedEnv(
 
 export function normalizeCopilotCliVersion(version: string): string {
   const trimmed = version.trim();
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(trimmed)) {
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$/.test(trimmed)) {
     throw new Error(
       "cli_version must be an exact @github/copilot version, for example 1.0.70; tags, ranges, URLs, and file paths are not allowed",
     );
