@@ -8,7 +8,6 @@ import {
   getIssue,
   listCandidates,
   listRepoLabels,
-  removeDuplicateLabel,
   upsertComment,
   type IssueLite,
   type Octokit,
@@ -237,10 +236,6 @@ async function main(): Promise<void> {
     if (duplicates.length) {
       await addDuplicateLabel(octokit, repo, issue.number);
       core.info("Added `duplicate` label.");
-    } else if (issue.labels.includes("duplicate") && commentResult === "updated") {
-      if (await removeDuplicateLabel(octokit, repo, issue.number)) {
-        core.info("Removed stale `duplicate` label.");
-      }
     }
   }
 

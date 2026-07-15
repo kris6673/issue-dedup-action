@@ -3,7 +3,6 @@ import { test } from "node:test";
 import {
   getIssue,
   listCandidates,
-  removeDuplicateLabel,
   upsertComment,
   type Octokit,
 } from "./github.ts";
@@ -58,8 +57,7 @@ test("matches marker comment logins case-insensitively", async () => {
   assert.deepEqual(calls, { created: 0, updated: 1 });
 });
 
-test("reads issue labels and removes the duplicate label", async () => {
-  let removed: Record<string, unknown> | undefined;
+test("reads issue labels", async () => {
   const octokit = {
     rest: {
       issues: {
@@ -72,45 +70,12 @@ test("reads issue labels and removes the duplicate label", async () => {
             labels: ["bug", {}, { name: "duplicate" }],
           },
         }),
-        removeLabel: async (options: Record<string, unknown>) => {
-          removed = options;
-        },
       },
     },
   } as unknown as Octokit;
 
   const issue = await getIssue(octokit, repo, 1);
   assert.deepEqual(issue.labels, ["bug", "duplicate"]);
-  assert.equal(await removeDuplicateLabel(octokit, repo, issue.number), true);
-  assert.deepEqual(removed, { ...repo, issue_number: 1, name: "duplicate" });
-});
-
-test("treats an already-absent duplicate label as success", async () => {
-  const octokit = {
-    rest: {
-      issues: {
-        removeLabel: async () => {
-          throw Object.assign(new Error("Not Found"), { status: 404 });
-        },
-      },
-    },
-  } as unknown as Octokit;
-
-  assert.equal(await removeDuplicateLabel(octokit, repo, 1), true);
-});
-
-test("reports a non-object duplicate label removal failure", async () => {
-  const octokit = {
-    rest: {
-      issues: {
-        removeLabel: async () => {
-          throw null;
-        },
-      },
-    },
-  } as unknown as Octokit;
-
-  assert.equal(await removeDuplicateLabel(octokit, repo, 1), false);
 });
 
 test("uses the full title with GitHub hybrid issue search", async () => {

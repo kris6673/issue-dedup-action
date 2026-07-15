@@ -48845,16 +48845,6 @@ async function upsertComment(octokit, repo, issue_number, body, { onlyUpdate = f
 async function addDuplicateLabel(octokit, repo, issue_number) {
   await octokit.rest.issues.addLabels({ ...repo, issue_number, labels: ["duplicate"] });
 }
-async function removeDuplicateLabel(octokit, repo, issue_number) {
-  try {
-    await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
-    return true;
-  } catch (err) {
-    if (err?.status === 404) return true;
-    warning(`Could not remove duplicate label: ${err}`);
-    return false;
-  }
-}
 function toLite(i) {
   return { number: i.number, title: i.title, body: i.body ?? "", html_url: i.html_url };
 }
@@ -49047,10 +49037,6 @@ async function main() {
     if (duplicates.length) {
       await addDuplicateLabel(octokit, repo, issue3.number);
       info("Added `duplicate` label.");
-    } else if (issue3.labels.includes("duplicate") && commentResult === "updated") {
-      if (await removeDuplicateLabel(octokit, repo, issue3.number)) {
-        info("Removed stale `duplicate` label.");
-      }
     }
   }
   if (process.env.GITHUB_STEP_SUMMARY) {

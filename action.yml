@@ -43,8 +43,8 @@ inputs:
     default: "true"
   label_as_duplicate:
     description: >-
-      Add the 'duplicate' label when duplicates are found, and remove it when
-      an action-authored result is updated after a rerun finds none.
+      Add the 'duplicate' label when duplicates are found. The action never
+      removes this label automatically.
     required: false
     default: "false"
   comment:

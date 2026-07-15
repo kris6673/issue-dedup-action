@@ -58,7 +58,7 @@ jobs:
 | `max_duplicates`     | `3`               | Stop after this many confirmed duplicates                                |
 | `confirm_duplicates` | `true`            | Re-check suspects with the stronger model                                |
 | `comment`            | `true`            | Upsert a comment listing duplicates on the issue                         |
-| `label_as_duplicate` | `false`           | Keep the `duplicate` label in sync with updated results                  |
+| `label_as_duplicate` | `false`           | Add the `duplicate` label when duplicates are found (never auto-remove)  |
 | `model`              | `gpt-5-mini`      | Model for classification and batch detection                             |
 | `confirm_model`      | `claude-sonnet-5` | Model for confirmation                                                   |
 | `cli_version`        | `1.0.70` (pinned) | Exact `@github/copilot` CLI version, or `latest`                          |
@@ -79,7 +79,7 @@ Set the repository or organization secret `ACTIONS_STEP_DEBUG` to `true` to also
 
 ## Security model
 
-- **Issue content is untrusted model input.** Titles and bodies of the checked issue _and_ of candidate issues go into LLM prompts. The prompts frame that text as untrusted data and a stronger model re-checks every suspected duplicate, but LLM verdicts can still be adversarially influenced (prompt injection). Treat the posted comment as advisory; keep `label_as_duplicate` off if you want a human in the loop before any issue state changes.
+- **Issue content is untrusted model input.** Titles and bodies of the checked issue _and_ of candidate issues go into LLM prompts. The prompts frame that text as untrusted data and a stronger model re-checks every suspected duplicate, but LLM verdicts can still be adversarially influenced (prompt injection). Treat the posted comment as advisory; when `label_as_duplicate` is enabled, the action can add the `duplicate` label but never removes it automatically.
 - **Triggering on `edited` lets issue authors re-run billed inference at will.** The recommended trigger is `opened` only. If you want re-runs on edits, gate them to trusted authors:
 
   ```yaml
