@@ -36,6 +36,24 @@ export function scrubbedEnv(
   return out;
 }
 
+export function sinceDaysToISOString(sinceDays: string, now = Date.now()): string {
+  const trimmed = sinceDays.trim();
+  if (!/^(?:0|[1-9]\d*)$/.test(trimmed)) {
+    throw new Error("since_days must be a non-negative integer");
+  }
+
+  const days = Number(trimmed);
+  if (!Number.isSafeInteger(days)) {
+    throw new Error("since_days must be a safe non-negative integer");
+  }
+
+  const date = new Date(now - days * 86400000);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("since_days is too large to convert to a valid date");
+  }
+  return date.toISOString();
+}
+
 export function normalizeCopilotCliVersion(version: string): string {
   const trimmed = version.trim();
   const exactSemver = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;

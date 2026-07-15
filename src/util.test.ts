@@ -6,6 +6,7 @@ import {
   chunk,
   normalizeCopilotCliVersion,
   scrubbedEnv,
+  sinceDaysToISOString,
   truncate,
 } from "./util.ts";
 
@@ -17,6 +18,18 @@ test("chunk splits into groups with remainder", () => {
 test("truncate only cuts long text", () => {
   assert.equal(truncate("short", 100), "short");
   assert.match(truncate("x".repeat(200), 100), /truncated/);
+});
+
+test("sinceDaysToISOString accepts finite non-negative integers", () => {
+  assert.equal(sinceDaysToISOString("0", Date.UTC(2024, 0, 2)), "2024-01-02T00:00:00.000Z");
+  assert.equal(sinceDaysToISOString("1", Date.UTC(2024, 0, 2)), "2024-01-01T00:00:00.000Z");
+  assert.equal(sinceDaysToISOString(" 2 ", Date.UTC(2024, 0, 3)), "2024-01-01T00:00:00.000Z");
+});
+
+test("sinceDaysToISOString rejects invalid values", () => {
+  for (const value of ["abc", "1abc", "1.5", "-1", "", "9007199254740992", "999999999999999999999"]) {
+    assert.throws(() => sinceDaysToISOString(value), /since_days/);
+  }
 });
 
 test("normalizeCopilotCliVersion accepts latest or exact versions", () => {
