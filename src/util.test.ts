@@ -5,6 +5,7 @@ import {
   buildCommentBody,
   chunk,
   extractKeywords,
+  normalizeCopilotCliVersion,
   scrubbedEnv,
   truncate,
 } from "./util.ts";
@@ -29,6 +30,15 @@ test("chunk splits into groups with remainder", () => {
 test("truncate only cuts long text", () => {
   assert.equal(truncate("short", 100), "short");
   assert.match(truncate("x".repeat(200), 100), /truncated/);
+});
+
+test("normalizeCopilotCliVersion accepts only exact versions", () => {
+  assert.equal(normalizeCopilotCliVersion(" 1.0.70 "), "1.0.70");
+  assert.equal(normalizeCopilotCliVersion("1.0.70-beta.1"), "1.0.70-beta.1");
+
+  for (const version of ["latest", "^1.0.70", "~1.0.70", "1", "file:/tmp/pkg.tgz", "https://example.com/pkg.tgz"]) {
+    assert.throws(() => normalizeCopilotCliVersion(version), /cli_version must be an exact/);
+  }
 });
 
 test("buildCommentBody lists duplicates with marker", () => {

@@ -48605,6 +48605,15 @@ function scrubbedEnv(env) {
   }
   return out;
 }
+function normalizeCopilotCliVersion(version2) {
+  const trimmed = version2.trim();
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(trimmed)) {
+    throw new Error(
+      "cli_version must be an exact @github/copilot version, for example 1.0.70; tags, ranges, URLs, and file paths are not allowed"
+    );
+  }
+  return trimmed;
+}
 function buildCommentBody(duplicates) {
   const footer = `<sub>Detected automatically by [issue-dedup-action](https://github.com/kris6673/issue-dedup-action)</sub>`;
   if (!duplicates.length) {
@@ -48626,10 +48635,11 @@ ${footer}`;
 var RESULT_TOOL = "report_result";
 var client = null;
 async function installCli(version2) {
-  const prefix = (0, import_node_path2.join)(process.env.RUNNER_TEMP ?? (0, import_node_os.tmpdir)(), `issue-dedup-copilot-cli-${version2}`);
+  const exactVersion = normalizeCopilotCliVersion(version2);
+  const prefix = (0, import_node_path2.join)(process.env.RUNNER_TEMP ?? (0, import_node_os.tmpdir)(), `issue-dedup-copilot-cli-${exactVersion}`);
   const loader = (0, import_node_path2.join)(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
   if (!(0, import_node_fs2.existsSync)(loader)) {
-    info(`Installing @github/copilot@${version2}`);
+    info(`Installing @github/copilot@${exactVersion}`);
     await exec(
       "npm",
       [
@@ -48642,7 +48652,7 @@ async function installCli(version2) {
         // disabling them means a compromised release can't run code at install.
         "--ignore-scripts",
         "--loglevel=error",
-        `@github/copilot@${version2}`
+        `@github/copilot@${exactVersion}`
       ],
       { env: scrubbedEnv(process.env) }
     );
