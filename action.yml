@@ -1,0 +1,76 @@
+name: Issue Deduplicator
+description: Detects duplicate GitHub issues using the Copilot SDK and comments, labels, or reports them.
+branding:
+  icon: copy
+  color: yellow
+inputs:
+  github_token:
+    description: >-
+      GitHub token. In workflows use `${{ secrets.GITHUB_TOKEN }}` with
+      `copilot-requests: write` and `issues: write` permissions.
+    required: true
+  github_issue:
+    description: Issue number to check. Defaults to the issue from the triggering event.
+    required: false
+  count:
+    description: Maximum number of candidate issues to compare against.
+    required: false
+    default: "30"
+  since:
+    description: Only consider issues updated after this date (ISO 8601).
+    required: false
+  labels:
+    description: >-
+      Comma-separated labels to filter candidate issues by, or 'auto' to
+      classify the issue against the repository's labels first.
+    required: false
+  state:
+    description: State of candidate issues to consider (open, closed, all).
+    required: false
+    default: open
+  max_duplicates:
+    description: Stop after this many confirmed duplicates.
+    required: false
+    default: "3"
+  confirm_duplicates:
+    description: Confirm each duplicate with the stronger model before reporting it.
+    required: false
+    default: "true"
+  label_as_duplicate:
+    description: Add the 'duplicate' label to the issue when duplicates are found.
+    required: false
+    default: "false"
+  comment:
+    description: Post (or update) a comment on the issue listing the duplicates found.
+    required: false
+    default: "true"
+  model:
+    description: Copilot model for classification and batch detection.
+    required: false
+    default: gpt-5-mini
+  confirm_model:
+    description: Copilot model for confirming duplicates.
+    required: false
+    default: claude-sonnet-4.5
+  cli_version:
+    description: Version of the @github/copilot CLI package to install.
+    required: false
+    default: latest
+  byok_base_url:
+    description: "BYOK: base URL of your own OpenAI-compatible/Azure/Anthropic endpoint. Leave empty to use Copilot."
+    required: false
+  byok_api_key:
+    description: "BYOK: API key for the endpoint above."
+    required: false
+  byok_type:
+    description: "BYOK: provider type (openai, azure, anthropic)."
+    required: false
+    default: openai
+outputs:
+  found:
+    description: '"true" when at least one duplicate was found.'
+  duplicates:
+    description: JSON array of duplicates, each with number, title, url and reasoning.
+runs:
+  using: node24
+  main: dist/index.cjs

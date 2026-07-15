@@ -1,0 +1,39 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { COMMENT_MARKER, buildCommentBody, chunk, extractKeywords, truncate } from "./util.ts";
+
+test("extractKeywords drops stopwords, punctuation and dupes", () => {
+  assert.deepEqual(
+    extractKeywords("Error: the login button doesn't work on mobile login"),
+    ["login", "button", "work", "mobile"],
+  );
+});
+
+test("extractKeywords caps the number of keywords", () => {
+  const kw = extractKeywords("alpha bravo charlie delta echo foxtrot golf hotel");
+  assert.equal(kw.length, 6);
+});
+
+test("chunk splits into groups with remainder", () => {
+  assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+  assert.deepEqual(chunk([], 2), []);
+});
+
+test("truncate only cuts long text", () => {
+  assert.equal(truncate("short", 100), "short");
+  assert.match(truncate("x".repeat(200), 100), /truncated/);
+});
+
+test("buildCommentBody lists duplicates with marker", () => {
+  const body = buildCommentBody([
+    { number: 12, title: "t", url: "u", reasoning: "same crash" },
+  ]);
+  assert.ok(body.startsWith(COMMENT_MARKER));
+  assert.match(body, /#12 — same crash/);
+});
+
+test("buildCommentBody without duplicates says so", () => {
+  const body = buildCommentBody([]);
+  assert.ok(body.startsWith(COMMENT_MARKER));
+  assert.match(body, /No duplicate issues/);
+});

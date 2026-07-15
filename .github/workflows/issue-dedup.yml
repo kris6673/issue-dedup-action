@@ -1,0 +1,27 @@
+name: Issue dedup
+on:
+  issues:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        type: number
+        description: Issue number to check
+        required: true
+permissions:
+  copilot-requests: write
+  issues: write
+concurrency:
+  group: issue-dedup-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: true
+jobs:
+  dedup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_issue: ${{ inputs.issue_number || github.event.issue.number }}
+          labels: auto
+          label_as_duplicate: true
