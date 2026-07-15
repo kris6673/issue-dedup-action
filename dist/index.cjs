@@ -48537,6 +48537,21 @@ function scrubbedEnv(env) {
   }
   return out;
 }
+function sinceDaysToISOString(sinceDays, now = Date.now()) {
+  const trimmed = sinceDays.trim();
+  if (!/^(?:0|[1-9]\d*)$/.test(trimmed)) {
+    throw new Error("since_days must be a non-negative integer");
+  }
+  const days = Number(trimmed);
+  if (!Number.isSafeInteger(days)) {
+    throw new Error("since_days must be a safe non-negative integer");
+  }
+  const date5 = new Date(now - days * 864e5);
+  if (Number.isNaN(date5.getTime())) {
+    throw new Error("since_days is too large to convert to a valid date");
+  }
+  return date5.toISOString();
+}
 function normalizeCopilotCliVersion(version2) {
   const trimmed = version2.trim();
   const exactSemver = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
@@ -48975,7 +48990,7 @@ async function main() {
   const confirmModel = getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(getInput("count") || "30", 10);
   const sinceDays = getInput("since_days");
-  const since = getInput("since") || (sinceDays ? new Date(Date.now() - parseInt(sinceDays, 10) * 864e5).toISOString() : "");
+  const since = getInput("since") || (sinceDays ? sinceDaysToISOString(sinceDays) : "");
   const labelsInput = getInput("labels");
   const state = getInput("state") || "open";
   const maxDuplicates = parseInt(getInput("max_duplicates") || "3", 10);

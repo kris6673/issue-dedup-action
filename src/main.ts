@@ -14,7 +14,7 @@ import {
   type Octokit,
   type RepoRef,
 } from "./github.ts";
-import { buildCommentBody, chunk, truncate, type Duplicate } from "./util.ts";
+import { buildCommentBody, chunk, sinceDaysToISOString, truncate, type Duplicate } from "./util.ts";
 
 const BODY_LIMIT = 4000;
 const ISSUES_PER_PROMPT = 15;
@@ -145,9 +145,7 @@ async function main(): Promise<void> {
   const confirmModel = core.getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(core.getInput("count") || "30", 10);
   const sinceDays = core.getInput("since_days");
-  const since =
-    core.getInput("since") ||
-    (sinceDays ? new Date(Date.now() - parseInt(sinceDays, 10) * 86400000).toISOString() : "");
+  const since = core.getInput("since") || (sinceDays ? sinceDaysToISOString(sinceDays) : "");
   const labelsInput = core.getInput("labels");
   const state = (core.getInput("state") || "open") as "open" | "closed" | "all";
   const maxDuplicates = parseInt(core.getInput("max_duplicates") || "3", 10);
