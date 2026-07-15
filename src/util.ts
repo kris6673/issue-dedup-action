@@ -38,6 +38,25 @@ export function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}\n[...truncated]` : text;
 }
 
+/**
+ * Copy of the env for child processes (npm install, the Copilot CLI) with
+ * action inputs and credential-looking variables removed, so a compromised
+ * dependency can't read the GitHub token or BYOK keys. The SDK injects its
+ * own auth from the `gitHubToken` option.
+ */
+export function scrubbedEnv(
+  env: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  const out: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (/^INPUT_/i.test(key)) continue;
+    if (/(TOKEN|SECRET|PASSWORD|CREDENTIAL)/i.test(key)) continue;
+    if (/_KEY$/i.test(key)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 export function buildCommentBody(duplicates: Duplicate[]): string {
   const footer = `<sub>Detected automatically by [issue-dedup-action](https://github.com/kris6673/issue-dedup-action)</sub>`;
   if (!duplicates.length) {

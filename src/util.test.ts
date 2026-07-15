@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { COMMENT_MARKER, buildCommentBody, chunk, extractKeywords, truncate } from "./util.ts";
+import {
+  COMMENT_MARKER,
+  buildCommentBody,
+  chunk,
+  extractKeywords,
+  scrubbedEnv,
+  truncate,
+} from "./util.ts";
 
 test("extractKeywords drops stopwords, punctuation and dupes", () => {
   assert.deepEqual(
@@ -30,6 +37,26 @@ test("buildCommentBody lists duplicates with marker", () => {
   ]);
   assert.ok(body.startsWith(COMMENT_MARKER));
   assert.match(body, /#12 — same crash/);
+});
+
+test("scrubbedEnv strips inputs and credential-looking vars, keeps the rest", () => {
+  const env = {
+    PATH: "/usr/bin",
+    RUNNER_TEMP: "/tmp",
+    INPUT_GITHUB_TOKEN: "ghs_secret",
+    input_byok_api_key: "sk-secret",
+    GITHUB_TOKEN: "ghs_secret",
+    COPILOT_GITHUB_TOKEN: "ghs_secret",
+    MY_PASSWORD: "hunter2",
+    AWS_CREDENTIALS: "x",
+    SOME_API_KEY: "x",
+    npm_config_registry: "https://registry.npmjs.org",
+  };
+  assert.deepEqual(scrubbedEnv(env), {
+    PATH: "/usr/bin",
+    RUNNER_TEMP: "/tmp",
+    npm_config_registry: "https://registry.npmjs.org",
+  });
 });
 
 test("buildCommentBody without duplicates says so", () => {
