@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import type { ProviderConfig } from "@github/copilot-sdk";
 import { z } from "zod";
-import { runStructured, startCopilot, stopCopilot } from "./copilot.ts";
+import { logUsage, runStructured, startCopilot, stopCopilot } from "./copilot.ts";
 import {
   addDuplicateLabel,
   getIssue,
@@ -203,7 +203,11 @@ async function main(): Promise<void> {
       provider,
     });
   } finally {
-    await stopCopilot();
+    try {
+      await stopCopilot();
+    } finally {
+      logUsage();
+    }
   }
 
   core.setOutput("found", String(duplicates.length > 0));

@@ -48625,6 +48625,110 @@ ${footer}`;
 // src/copilot.ts
 var RESULT_TOOL = "report_result";
 var client = null;
+function emptyModelUsage() {
+  return {
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    reasoningTokens: 0,
+    premiumRequestCost: 0
+  };
+}
+function emptyUsageSummary() {
+  return {
+    ...emptyModelUsage(),
+    collected: false,
+    byok: false,
+    apiDurationMs: 0,
+    models: {}
+  };
+}
+var usage = emptyUsageSummary();
+function addUsageMetrics(summary2, metrics, byok) {
+  summary2.collected = true;
+  summary2.byok ||= byok;
+  summary2.apiDurationMs += metrics.totalApiDurationMs;
+  summary2.premiumRequestCost += metrics.totalPremiumRequestCost;
+  if (metrics.totalNanoAiu !== void 0) {
+    summary2.nanoAiu = (summary2.nanoAiu ?? 0) + metrics.totalNanoAiu;
+  }
+  for (const [model, metric] of Object.entries(metrics.modelMetrics)) {
+    if (!metric) continue;
+    const target = summary2.models[model] ??= emptyModelUsage();
+    for (const item of [summary2, target]) {
+      item.calls += metric.requests.count;
+      item.inputTokens += metric.usage.inputTokens;
+      item.outputTokens += metric.usage.outputTokens;
+      item.cacheReadTokens += metric.usage.cacheReadTokens;
+      item.cacheWriteTokens += metric.usage.cacheWriteTokens;
+      item.reasoningTokens += metric.usage.reasoningTokens ?? 0;
+    }
+    target.premiumRequestCost += metric.requests.cost;
+    if (metric.totalNanoAiu !== void 0) {
+      target.nanoAiu = (target.nanoAiu ?? 0) + metric.totalNanoAiu;
+    }
+  }
+}
+async function collectUsageMetrics(summary2, getMetrics, byok, label) {
+  try {
+    addUsageMetrics(summary2, await getMetrics(), byok);
+  } catch (err) {
+    debug(
+      `[${label}] usage metrics unavailable: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+var integer2 = new Intl.NumberFormat("en-US");
+function billingUnits(value) {
+  return value > 0 && value < 1e-3 ? "<0.001" : value.toFixed(3);
+}
+function billingSuffix(summary2, byok) {
+  if (byok) return void 0;
+  if (summary2.nanoAiu !== void 0) {
+    return `${billingUnits(summary2.nanoAiu / 1e9)} AI Credits`;
+  }
+  if (summary2.premiumRequestCost > 0) {
+    return `${billingUnits(summary2.premiumRequestCost)} premium requests`;
+  }
+  return void 0;
+}
+function formatUsageSummary(summary2) {
+  if (!summary2.collected) return void 0;
+  const parts = [
+    `${integer2.format(summary2.calls)} model call${summary2.calls === 1 ? "" : "s"}`,
+    `${integer2.format(summary2.inputTokens)} input tokens`,
+    `${integer2.format(summary2.outputTokens)} output tokens`
+  ];
+  const billing = billingSuffix(summary2, summary2.byok);
+  if (billing) parts.push(billing);
+  return `AI usage: ${parts.join(" \xB7 ")}`;
+}
+function formatUsageDebug(summary2) {
+  if (!summary2.collected) return [];
+  const lines = Object.entries(summary2.models).sort(([a], [b]) => a.localeCompare(b)).map(([model, item]) => {
+    const parts = [
+      `${integer2.format(item.calls)} calls`,
+      `${integer2.format(item.inputTokens)} input`,
+      `${integer2.format(item.outputTokens)} output`,
+      `${integer2.format(item.cacheReadTokens)} cache read`,
+      `${integer2.format(item.cacheWriteTokens)} cache write`,
+      `${integer2.format(item.reasoningTokens)} reasoning`
+    ];
+    const billing = billingSuffix(item, summary2.byok);
+    if (billing) parts.push(billing);
+    return `AI usage [${model}]: ${parts.join(" \xB7 ")}`;
+  });
+  lines.push(`AI usage: ${integer2.format(summary2.apiDurationMs)} ms model API time`);
+  return lines;
+}
+function logUsage() {
+  const line = formatUsageSummary(usage);
+  if (!line) return;
+  info(line);
+  for (const detail of formatUsageDebug(usage)) debug(detail);
+}
 async function installCli(version2) {
   const prefix = (0, import_node_path2.join)(process.env.RUNNER_TEMP ?? (0, import_node_os.tmpdir)(), `issue-dedup-copilot-cli-${version2}`);
   const loader = (0, import_node_path2.join)(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
@@ -48650,6 +48754,7 @@ async function installCli(version2) {
   return loader;
 }
 async function startCopilot(opts) {
+  usage = emptyUsageSummary();
   const cliPath = await installCli(opts.cliVersion);
   client = new CopilotClient({
     connection: RuntimeConnection.forStdio({ path: cliPath }),
@@ -48694,6 +48799,12 @@ async function runStructured(opts) {
     }
     return opts.schema.parse(captured);
   } finally {
+    await collectUsageMetrics(
+      usage,
+      () => session.rpc.usage.getMetrics(),
+      Boolean(opts.provider),
+      opts.label
+    );
     await session.disconnect().catch(() => {
     });
   }
@@ -48951,7 +49062,11 @@ async function main() {
       provider
     });
   } finally {
-    await stopCopilot();
+    try {
+      await stopCopilot();
+    } finally {
+      logUsage();
+    }
   }
   setOutput("found", String(duplicates.length > 0));
   setOutput("duplicates", JSON.stringify(duplicates));

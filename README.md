@@ -70,6 +70,12 @@ jobs:
 - `found` — `"true"` when at least one duplicate was found.
 - `duplicates` — JSON array of `{ number, title, url, reasoning }`.
 
+## AI usage logging
+
+At the end of the action step, a single `AI usage:` log line reports aggregate model calls, input and output tokens, and AI Credits (or premium requests for legacy billing). BYOK runs report calls and tokens without a billing estimate. Usage reporting is best-effort and never fails the action when the experimental SDK metrics are unavailable.
+
+Set the repository or organization secret `ACTIONS_STEP_DEBUG` to `true` to also log a per-model breakdown with cache tokens, reasoning tokens, API duration, and billing units. Raw SDK metrics, request identifiers, quota snapshots, prompts, and issue content are never logged.
+
 ## Security model
 
 - **Issue content is untrusted model input.** Titles and bodies of the checked issue *and* of candidate issues go into LLM prompts. The prompts frame that text as untrusted data and a stronger model re-checks every suspected duplicate, but LLM verdicts can still be adversarially influenced (prompt injection). Treat the posted comment as advisory; keep `label_as_duplicate` off if you want a human in the loop before any issue state changes.
