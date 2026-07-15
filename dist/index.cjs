@@ -49012,7 +49012,7 @@ Call report_result with your verdict.`
 async function main() {
   const token = getInput("github_token", { required: true });
   const model = getInput("model") || "gpt-5-mini";
-  const confirmModel = getInput("confirm_model") || "claude-sonnet-4.5";
+  const confirmModel = getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(getInput("count") || "30", 10);
   const since = getInput("since");
   const labelsInput = getInput("labels");

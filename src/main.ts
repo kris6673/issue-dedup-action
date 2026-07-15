@@ -141,7 +141,7 @@ async function findDuplicates(
 async function main(): Promise<void> {
   const token = core.getInput("github_token", { required: true });
   const model = core.getInput("model") || "gpt-5-mini";
-  const confirmModel = core.getInput("confirm_model") || "claude-sonnet-4.5";
+  const confirmModel = core.getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(core.getInput("count") || "30", 10);
   const since = core.getInput("since");
   const labelsInput = core.getInput("labels");

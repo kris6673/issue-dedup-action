@@ -59,7 +59,7 @@ jobs:
 | `comment`            | `true`              | Upsert a comment listing duplicates on the issue          |
 | `label_as_duplicate` | `false`             | Add the `duplicate` label when duplicates are found       |
 | `model`              | `gpt-5-mini`        | Model for classification and batch detection              |
-| `confirm_model`      | `claude-sonnet-4.5` | Model for confirmation                                    |
+| `confirm_model`      | `claude-sonnet-5`   | Model for confirmation                                    |
 | `cli_version`        | `1.0.70` (pinned)   | Exact `@github/copilot` CLI version to install             |
 | `byok_base_url`      |                     | BYOK: your own endpoint base URL (skips Copilot billing)  |
 | `byok_api_key`       |                     | BYOK: API key for that endpoint                           |
