@@ -141,3 +141,32 @@ test("uses the full title with GitHub hybrid issue search", async () => {
     search_type: "hybrid",
   });
 });
+
+test("adds an updated qualifier to the hybrid search when since is set", async () => {
+  let requestOptions: Record<string, unknown> | undefined;
+  const octokit = {
+    request: async (_route: string, options: Record<string, unknown>) => {
+      requestOptions = options;
+      return { data: { items: [] } };
+    },
+    rest: {
+      issues: {
+        listForRepo: async () => ({ data: [] }),
+      },
+    },
+  } as unknown as Octokit;
+
+  await listCandidates(octokit, repo, {
+    state: "open",
+    since: "2024-01-01T00:00:00Z",
+    labels: [],
+    count: 30,
+    exclude: 1,
+    title: "Authentication error when using Azure login",
+  });
+
+  assert.equal(
+    requestOptions?.q,
+    "repo:owner/repo is:issue state:open updated:>=2024-01-01T00:00:00Z authentication error when using azure login",
+  );
+});

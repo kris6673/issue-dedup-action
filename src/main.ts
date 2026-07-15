@@ -144,7 +144,10 @@ async function main(): Promise<void> {
   const model = core.getInput("model") || "gpt-5-mini";
   const confirmModel = core.getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(core.getInput("count") || "30", 10);
-  const since = core.getInput("since");
+  const sinceDays = core.getInput("since_days");
+  const since =
+    core.getInput("since") ||
+    (sinceDays ? new Date(Date.now() - parseInt(sinceDays, 10) * 86400000).toISOString() : "");
   const labelsInput = core.getInput("labels");
   const state = (core.getInput("state") || "open") as "open" | "closed" | "all";
   const maxDuplicates = parseInt(core.getInput("max_duplicates") || "3", 10);

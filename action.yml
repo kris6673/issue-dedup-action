@@ -19,6 +19,11 @@ inputs:
   since:
     description: Only consider issues updated after this date (ISO 8601).
     required: false
+  since_days:
+    description: >-
+      Only consider issues updated in the last N days. Alternative to
+      `since`; ignored if `since` is also set.
+    required: false
   labels:
     description: >-
       Comma-separated labels to filter candidate issues by, or 'auto' to

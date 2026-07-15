@@ -48801,6 +48801,7 @@ async function listCandidates(octokit, repo, opts) {
   if (searchText) {
     const qualifiers = [`repo:${repo.owner}/${repo.repo}`, "is:issue"];
     if (opts.state !== "all") qualifiers.push(`state:${opts.state}`);
+    if (opts.since) qualifiers.push(`updated:>=${opts.since}`);
     const q = [...qualifiers, searchText].join(" ");
     debug(`search query: ${q}`);
     try {
@@ -48973,7 +48974,8 @@ async function main() {
   const model = getInput("model") || "gpt-5-mini";
   const confirmModel = getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(getInput("count") || "30", 10);
-  const since = getInput("since");
+  const sinceDays = getInput("since_days");
+  const since = getInput("since") || (sinceDays ? new Date(Date.now() - parseInt(sinceDays, 10) * 864e5).toISOString() : "");
   const labelsInput = getInput("labels");
   const state = getInput("state") || "open";
   const maxDuplicates = parseInt(getInput("max_duplicates") || "3", 10);
