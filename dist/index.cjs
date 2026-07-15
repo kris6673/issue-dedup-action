@@ -48759,9 +48759,10 @@ async function getIssue(octokit, repo, issue_number) {
   const { data } = await octokit.rest.issues.get({ ...repo, issue_number });
   return {
     ...toLite(data),
-    labels: (data.labels ?? []).map(
-      (label) => typeof label === "string" ? label : label.name ?? ""
-    )
+    labels: (data.labels ?? []).flatMap((label) => {
+      const name = typeof label === "string" ? label : label.name;
+      return name ? [name] : [];
+    })
   };
 }
 async function listRepoLabels(octokit, repo) {
@@ -48835,9 +48836,11 @@ async function addDuplicateLabel(octokit, repo, issue_number) {
 async function removeDuplicateLabel(octokit, repo, issue_number) {
   try {
     await octokit.rest.issues.removeLabel({ ...repo, issue_number, name: "duplicate" });
+    return true;
   } catch (err) {
-    if (err.status === 404) return;
+    if (err?.status === 404) return true;
     warning(`Could not remove duplicate label: ${err}`);
+    return false;
   }
 }
 function toLite(i) {
@@ -49032,8 +49035,9 @@ async function main() {
       await addDuplicateLabel(octokit, repo, issue3.number);
       info("Added `duplicate` label.");
     } else if (issue3.labels.includes("duplicate") && commentResult === "updated") {
-      await removeDuplicateLabel(octokit, repo, issue3.number);
-      info("Removed stale `duplicate` label.");
+      if (await removeDuplicateLabel(octokit, repo, issue3.number)) {
+        info("Removed stale `duplicate` label.");
+      }
     }
   }
   if (process.env.GITHUB_STEP_SUMMARY) {
