@@ -12,7 +12,7 @@ import {
 } from "@github/copilot-sdk";
 import type { ProviderConfig } from "@github/copilot-sdk";
 import type { ZodType } from "zod";
-import { scrubbedEnv } from "./util.ts";
+import { normalizeCopilotCliVersion, scrubbedEnv } from "./util.ts";
 
 const RESULT_TOOL = "report_result";
 
@@ -191,11 +191,12 @@ export function logUsage(): void {
  * the SDK's own require.resolve lookup does not survive esbuild bundling.
  */
 async function installCli(version: string): Promise<string> {
+  const exactVersion = normalizeCopilotCliVersion(version);
   // Version in the dir name: a cached install can never satisfy a different pin.
-  const prefix = join(process.env.RUNNER_TEMP ?? tmpdir(), `issue-dedup-copilot-cli-${version}`);
+  const prefix = join(process.env.RUNNER_TEMP ?? tmpdir(), `issue-dedup-copilot-cli-${exactVersion}`);
   const loader = join(prefix, "node_modules", "@github", "copilot", "npm-loader.js");
   if (!existsSync(loader)) {
-    core.info(`Installing @github/copilot@${version}`);
+    core.info(`Installing @github/copilot@${exactVersion}`);
     await exec(
       "npm",
       [
@@ -208,7 +209,7 @@ async function installCli(version: string): Promise<string> {
         // disabling them means a compromised release can't run code at install.
         "--ignore-scripts",
         "--loglevel=error",
-        `@github/copilot@${version}`,
+        `@github/copilot@${exactVersion}`,
       ],
       { env: scrubbedEnv(process.env) as Record<string, string> },
     );
