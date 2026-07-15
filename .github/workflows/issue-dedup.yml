@@ -25,4 +25,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_issue: ${{ inputs.issue_number || github.event.issue.number }}
           labels: auto
+          state: all
           label_as_duplicate: true
