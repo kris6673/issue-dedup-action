@@ -75,7 +75,7 @@ export function emptyUsageSummary(): UsageSummary {
     collected: false,
     byok: false,
     apiDurationMs: 0,
-    models: {},
+    models: Object.create(null) as Record<string, ModelUsageSummary>,
   };
 }
 

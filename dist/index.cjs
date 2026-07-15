@@ -48642,7 +48642,7 @@ function emptyUsageSummary() {
     collected: false,
     byok: false,
     apiDurationMs: 0,
-    models: {}
+    models: /* @__PURE__ */ Object.create(null)
   };
 }
 var usage = emptyUsageSummary();
