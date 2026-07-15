@@ -89,6 +89,7 @@ export async function listCandidates(
   if (searchText) {
     const qualifiers = [`repo:${repo.owner}/${repo.repo}`, "is:issue"];
     if (opts.state !== "all") qualifiers.push(`state:${opts.state}`);
+    if (opts.since) qualifiers.push(`updated:>=${opts.since}`);
     const q = [...qualifiers, searchText].join(" ");
     core.debug(`search query: ${q}`);
     try {

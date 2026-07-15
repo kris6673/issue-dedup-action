@@ -46,24 +46,25 @@ jobs:
 
 ## Inputs
 
-| Input                | Default             | Description                                               |
-| -------------------- | ------------------- | --------------------------------------------------------- |
-| `github_token`       | (required)          | Token with `copilot-requests: write` and `issues: write`  |
-| `github_issue`       | event issue         | Issue number to check (for `workflow_dispatch`)           |
-| `count`              | `30`                | Max candidate issues to compare against                   |
-| `since`              |                     | Only consider issues updated after this ISO 8601 date     |
-| `labels`             |                     | Comma-separated label filter, or `auto` to classify first |
-| `state`              | `open`              | Candidate issue state: `open`, `closed`, `all`            |
-| `max_duplicates`     | `3`                 | Stop after this many confirmed duplicates                 |
-| `confirm_duplicates` | `true`              | Re-check suspects with the stronger model                 |
-| `comment`            | `true`              | Upsert a comment listing duplicates on the issue          |
-| `label_as_duplicate` | `false`             | Add the `duplicate` label when duplicates are found       |
-| `model`              | `gpt-5-mini`        | Model for classification and batch detection              |
-| `confirm_model`      | `claude-sonnet-5`   | Model for confirmation                                    |
-| `cli_version`        | `1.0.70` (pinned)   | Exact `@github/copilot` CLI version to install             |
-| `byok_base_url`      |                     | BYOK: your own endpoint base URL (skips Copilot billing)  |
-| `byok_api_key`       |                     | BYOK: API key for that endpoint                           |
-| `byok_type`          | `openai`            | BYOK: `openai`, `azure`, or `anthropic`                   |
+| Input                | Default           | Description                                                              |
+| -------------------- | ----------------- | ------------------------------------------------------------------------ |
+| `github_token`       | (required)        | Token with `copilot-requests: write` and `issues: write`                 |
+| `github_issue`       | event issue       | Issue number to check (for `workflow_dispatch`)                          |
+| `count`              | `30`              | Max candidate issues to compare against                                  |
+| `since`              |                   | Only consider issues updated after this ISO 8601 date                    |
+| `since_days`         |                   | Only consider issues updated in the last N days (alternative to `since`) |
+| `labels`             |                   | Comma-separated label filter, or `auto` to classify first                |
+| `state`              | `open`            | Candidate issue state: `open`, `closed`, `all`                           |
+| `max_duplicates`     | `3`               | Stop after this many confirmed duplicates                                |
+| `confirm_duplicates` | `true`            | Re-check suspects with the stronger model                                |
+| `comment`            | `true`            | Upsert a comment listing duplicates on the issue                         |
+| `label_as_duplicate` | `false`           | Add the `duplicate` label when duplicates are found (never auto-remove)  |
+| `model`              | `gpt-5-mini`      | Model for classification and batch detection                             |
+| `confirm_model`      | `claude-sonnet-5` | Model for confirmation                                                   |
+| `cli_version`        | `1.0.70` (pinned) | Exact `@github/copilot` CLI version, or `latest`                          |
+| `byok_base_url`      |                   | BYOK: your own endpoint base URL (skips Copilot billing)                 |
+| `byok_api_key`       |                   | BYOK: API key for that endpoint                                          |
+| `byok_type`          | `openai`          | BYOK: `openai`, `azure`, or `anthropic`                                  |
 
 ## Outputs
 
@@ -78,7 +79,7 @@ Set the repository or organization secret `ACTIONS_STEP_DEBUG` to `true` to also
 
 ## Security model
 
-- **Issue content is untrusted model input.** Titles and bodies of the checked issue *and* of candidate issues go into LLM prompts. The prompts frame that text as untrusted data and a stronger model re-checks every suspected duplicate, but LLM verdicts can still be adversarially influenced (prompt injection). Treat the posted comment as advisory; when `label_as_duplicate` is enabled, the action can add the `duplicate` label but never removes it automatically.
+- **Issue content is untrusted model input.** Titles and bodies of the checked issue _and_ of candidate issues go into LLM prompts. The prompts frame that text as untrusted data and a stronger model re-checks every suspected duplicate, but LLM verdicts can still be adversarially influenced (prompt injection). Treat the posted comment as advisory; when `label_as_duplicate` is enabled, the action can add the `duplicate` label but never removes it automatically.
 - **Triggering on `edited` lets issue authors re-run billed inference at will.** The recommended trigger is `opened` only. If you want re-runs on edits, gate them to trusted authors:
 
   ```yaml
@@ -90,7 +91,7 @@ Set the repository or organization secret `ACTIONS_STEP_DEBUG` to `true` to also
       if: github.event.action != 'edited' || contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
   ```
 
-- **The Copilot CLI is installed at runtime, pinned to an exact version** with lifecycle scripts disabled, and both the installer and the CLI subprocess run with action inputs and credential-like variables scrubbed from their environment. Overriding `cli_version` moves that pin — do it deliberately.
+- **The Copilot CLI is installed at runtime, pinned to an exact version by default** with lifecycle scripts disabled, and both the installer and the CLI subprocess run with action inputs and credential-like variables scrubbed from their environment. Set `cli_version: latest` to opt into automatic updates, trading reproducibility for freshness.
 - The action only trusts marker comments authored by the identity associated with `github_token` when updating previous results; comments from other users or bots containing the marker are ignored.
 
 ## BYOK

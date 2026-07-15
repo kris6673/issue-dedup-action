@@ -39,9 +39,9 @@ export function scrubbedEnv(
 export function normalizeCopilotCliVersion(version: string): string {
   const trimmed = version.trim();
   const exactSemver = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
-  if (!exactSemver.test(trimmed)) {
+  if (trimmed !== "latest" && !exactSemver.test(trimmed)) {
     throw new Error(
-      "cli_version must be an exact @github/copilot version, for example 1.0.70; tags, ranges, URLs, and file paths are not allowed",
+      "cli_version must be 'latest' or an exact @github/copilot version, for example 1.0.70; other tags, ranges, URLs, and file paths are not allowed",
     );
   }
   return trimmed;

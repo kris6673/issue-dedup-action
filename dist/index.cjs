@@ -48540,9 +48540,9 @@ function scrubbedEnv(env) {
 function normalizeCopilotCliVersion(version2) {
   const trimmed = version2.trim();
   const exactSemver = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
-  if (!exactSemver.test(trimmed)) {
+  if (trimmed !== "latest" && !exactSemver.test(trimmed)) {
     throw new Error(
-      "cli_version must be an exact @github/copilot version, for example 1.0.70; tags, ranges, URLs, and file paths are not allowed"
+      "cli_version must be 'latest' or an exact @github/copilot version, for example 1.0.70; other tags, ranges, URLs, and file paths are not allowed"
     );
   }
   return trimmed;
@@ -48584,7 +48584,7 @@ function emptyUsageSummary() {
     collected: false,
     byok: false,
     apiDurationMs: 0,
-    models: {}
+    models: /* @__PURE__ */ Object.create(null)
   };
 }
 var usage = emptyUsageSummary();
@@ -48801,6 +48801,7 @@ async function listCandidates(octokit, repo, opts) {
   if (searchText) {
     const qualifiers = [`repo:${repo.owner}/${repo.repo}`, "is:issue"];
     if (opts.state !== "all") qualifiers.push(`state:${opts.state}`);
+    if (opts.since) qualifiers.push(`updated:>=${opts.since}`);
     const q = [...qualifiers, searchText].join(" ");
     debug(`search query: ${q}`);
     try {
@@ -48963,7 +48964,8 @@ async function main() {
   const model = getInput("model") || "gpt-5-mini";
   const confirmModel = getInput("confirm_model") || "claude-sonnet-5";
   const count = parseInt(getInput("count") || "30", 10);
-  const since = getInput("since");
+  const sinceDays = getInput("since_days");
+  const since = getInput("since") || (sinceDays ? new Date(Date.now() - parseInt(sinceDays, 10) * 864e5).toISOString() : "");
   const labelsInput = getInput("labels");
   const state = getInput("state") || "open";
   const maxDuplicates = parseInt(getInput("max_duplicates") || "3", 10);

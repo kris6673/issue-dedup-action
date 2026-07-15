@@ -87,6 +87,38 @@ test("suppresses billing units for BYOK", () => {
   assert.ok(formatUsageDebug(usage).every((line) => !/Credits|premium/.test(line)));
 });
 
+
+test("stores prototype-looking model names without polluting objects", () => {
+  const usage = emptyUsageSummary();
+  const metric = {
+    requests: { count: 1, cost: 0.25 },
+    usage: {
+      inputTokens: 10,
+      outputTokens: 2,
+      cacheReadTokens: 3,
+      cacheWriteTokens: 4,
+      reasoningTokens: 5,
+    },
+    totalNanoAiu: 6,
+  };
+
+  addUsageMetrics(
+    usage,
+    {
+      totalPremiumRequestCost: 0.25,
+      totalApiDurationMs: 7,
+      modelMetrics: JSON.parse(`{"__proto__":${JSON.stringify(metric)}}`),
+    },
+    false,
+  );
+
+  assert.equal(Object.hasOwn(usage.models, "__proto__"), true);
+  assert.deepEqual(Object.keys({}), []);
+  assert.equal(Object.hasOwn(Object.prototype, "calls"), false);
+  assert.equal(usage.models.__proto__.calls, 1);
+  assert.equal(usage.models.__proto__.nanoAiu, 6);
+});
+
 test("returns no log lines when metrics were unavailable", () => {
   const usage = emptyUsageSummary();
   assert.equal(formatUsageSummary(usage), undefined);

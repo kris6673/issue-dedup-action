@@ -19,6 +19,11 @@ inputs:
   since:
     description: Only consider issues updated after this date (ISO 8601).
     required: false
+  since_days:
+    description: >-
+      Only consider issues updated in the last N days. Alternative to
+      `since`; ignored if `since` is also set.
+    required: false
   labels:
     description: >-
       Comma-separated labels to filter candidate issues by, or 'auto' to
@@ -56,8 +61,8 @@ inputs:
     default: claude-sonnet-5
   cli_version:
     description: >-
-      Exact version of the @github/copilot CLI package to install. Pinned by
-      default; overriding trades supply-chain safety for freshness.
+      Exact version of the @github/copilot CLI package to install, or 'latest'.
+      Pinned by default; using 'latest' trades reproducibility for freshness.
     required: false
     default: 1.0.70
   byok_base_url:
