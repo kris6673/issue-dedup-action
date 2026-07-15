@@ -59,7 +59,11 @@ jobs:
 | `comment`            | `true`              | Upsert a comment listing duplicates on the issue          |
 | `label_as_duplicate` | `false`             | Add the `duplicate` label when duplicates are found       |
 | `model`              | `gpt-5-mini`        | Model for classification and batch detection              |
+<<<<<<< HEAD
 | `confirm_model`      | `claude-sonnet-4.5` | Model for confirmation                                    |
+=======
+| `confirm_model`      | `claude-sonnet-5`   | Model for confirmation                                    |
+>>>>>>> origin/main
 | `cli_version`        | `1.0.70` (pinned)   | Exact `@github/copilot` CLI version to install             |
 | `byok_base_url`      |                     | BYOK: your own endpoint base URL (skips Copilot billing)  |
 | `byok_api_key`       |                     | BYOK: API key for that endpoint                           |
@@ -70,6 +74,15 @@ jobs:
 - `found` — `"true"` when at least one duplicate was found.
 - `duplicates` — JSON array of `{ number, title, url, reasoning }`.
 
+<<<<<<< HEAD
+=======
+## AI usage logging
+
+At the end of the action step, a single `AI usage:` log line reports aggregate model calls, input and output tokens, and AI Credits (or premium requests for legacy billing). BYOK runs report calls and tokens without a billing estimate. Usage reporting is best-effort and never fails the action when the experimental SDK metrics are unavailable.
+
+Set the repository or organization secret `ACTIONS_STEP_DEBUG` to `true` to also log a per-model breakdown with cache tokens, reasoning tokens, API duration, and billing units. Raw SDK metrics, request identifiers, quota snapshots, prompts, and issue content are never logged.
+
+>>>>>>> origin/main
 ## Security model
 
 - **Issue content is untrusted model input.** Titles and bodies of the checked issue *and* of candidate issues go into LLM prompts. The prompts frame that text as untrusted data and a stronger model re-checks every suspected duplicate, but LLM verdicts can still be adversarially influenced (prompt injection). Treat the posted comment as advisory; keep `label_as_duplicate` off if you want a human in the loop before any issue state changes.
@@ -85,7 +98,11 @@ jobs:
   ```
 
 - **The Copilot CLI is installed at runtime, pinned to an exact version** with lifecycle scripts disabled, and both the installer and the CLI subprocess run with action inputs and credential-like variables scrubbed from their environment. Overriding `cli_version` moves that pin — do it deliberately.
+<<<<<<< HEAD
 - The action only trusts its own **Bot-authored** marker comment when updating previous results; user comments containing the marker are ignored.
+=======
+- The action only trusts marker comments authored by the identity associated with `github_token` when updating previous results; comments from other users or bots containing the marker are ignored.
+>>>>>>> origin/main
 
 ## BYOK
 

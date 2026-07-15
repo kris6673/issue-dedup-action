@@ -5,7 +5,10 @@ import {
   buildCommentBody,
   chunk,
   extractKeywords,
+<<<<<<< HEAD
   normalizeCopilotCliVersion,
+=======
+>>>>>>> origin/main
   scrubbedEnv,
   truncate,
 } from "./util.ts";

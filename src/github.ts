@@ -113,15 +113,25 @@ export async function upsertComment(
   body: string,
   { onlyUpdate = false } = {},
 ): Promise<"created" | "updated" | "skipped"> {
+  const { viewer } = await octokit.graphql<{ viewer: { login: string } }>(
+    "query { viewer { login } }",
+  );
   const comments = await octokit.paginate(octokit.rest.issues.listComments, {
     ...repo,
     issue_number,
     per_page: 100,
   });
+<<<<<<< HEAD
   // Author check: anyone can paste the public marker into a comment; only a
   // Bot-authored one (github-actions[bot] for GITHUB_TOKEN runs) counts as ours.
   const existing = comments.find(
     (c) => c.body?.includes(COMMENT_MARKER) && c.user?.type === "Bot",
+=======
+  const existing = comments.find(
+    (c) =>
+      c.body?.includes(COMMENT_MARKER) &&
+      c.user?.login.toLowerCase() === viewer.login.toLowerCase(),
+>>>>>>> origin/main
   );
   if (existing) {
     try {

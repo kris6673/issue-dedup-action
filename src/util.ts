@@ -57,6 +57,7 @@ export function scrubbedEnv(
   return out;
 }
 
+<<<<<<< HEAD
 export function normalizeCopilotCliVersion(version: string): string {
   const trimmed = version.trim();
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(trimmed)) {
@@ -67,6 +68,8 @@ export function normalizeCopilotCliVersion(version: string): string {
   return trimmed;
 }
 
+=======
+>>>>>>> origin/main
 export function buildCommentBody(duplicates: Duplicate[]): string {
   const footer = `<sub>Detected automatically by [issue-dedup-action](https://github.com/kris6673/issue-dedup-action)</sub>`;
   if (!duplicates.length) {
