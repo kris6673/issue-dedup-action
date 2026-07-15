@@ -8,6 +8,7 @@ import {
   getIssue,
   listCandidates,
   listRepoLabels,
+  removeDuplicateLabel,
   upsertComment,
   type IssueLite,
   type Octokit,
@@ -219,18 +220,24 @@ async function main(): Promise<void> {
     core.info("No duplicates found.");
   }
 
+  let commentResult: "created" | "updated" | "skipped" = "skipped";
   if (comment) {
     // Without duplicates only refresh an existing comment (issue was edited
     // and is no longer a duplicate) — never post a "nothing found" comment.
-    const result = await upsertComment(octokit, repo, issue.number, buildCommentBody(duplicates), {
+    commentResult = await upsertComment(octokit, repo, issue.number, buildCommentBody(duplicates), {
       onlyUpdate: duplicates.length === 0,
     });
-    core.info(`Comment ${result}.`);
+    core.info(`Comment ${commentResult}.`);
   }
 
-  if (labelAsDuplicate && duplicates.length) {
-    await addDuplicateLabel(octokit, repo, issue.number);
-    core.info("Added `duplicate` label.");
+  if (labelAsDuplicate) {
+    if (duplicates.length) {
+      await addDuplicateLabel(octokit, repo, issue.number);
+      core.info("Added `duplicate` label.");
+    } else if (issue.labels.includes("duplicate") && commentResult === "updated") {
+      await removeDuplicateLabel(octokit, repo, issue.number);
+      core.info("Removed stale `duplicate` label.");
+    }
   }
 
   if (process.env.GITHUB_STEP_SUMMARY) {
