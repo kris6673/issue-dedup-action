@@ -56,10 +56,11 @@ export interface CandidateOptions {
 }
 
 /**
- * Candidate issues to compare against: recently-updated issues (optionally
- * per label, mirroring the upstream action) merged with GitHub's hybrid
- * semantic/keyword search on the new issue's title, deduped and capped at
- * `count`.
+ * Candidate issues to compare against: GitHub's hybrid semantic/keyword
+ * search on the new issue's title merged with recently-updated issues
+ * (optionally per label, mirroring the upstream action), deduped and capped
+ * at `count`. Search hits come first — they're relevance-ranked, so they
+ * must survive the cap even when the recency listing alone could fill it.
  */
 export async function listCandidates(
   octokit: Octokit,
@@ -67,6 +68,7 @@ export async function listCandidates(
   opts: CandidateOptions,
 ): Promise<IssueLite[]> {
   const collected: IssueLite[] = [];
+  const recent: IssueLite[] = [];
 
   for (const label of opts.labels.length ? opts.labels : [undefined]) {
     const { data } = await octokit.rest.issues.listForRepo({
@@ -78,7 +80,7 @@ export async function listCandidates(
       since: opts.since || undefined,
       labels: label,
     });
-    collected.push(...data.filter((i) => !i.pull_request).map(toLite));
+    recent.push(...data.filter((i) => !i.pull_request).map(toLite));
   }
 
   const searchText = opts.title
@@ -104,6 +106,8 @@ export async function listCandidates(
       core.warning(`Keyword search failed, continuing without it: ${err}`);
     }
   }
+
+  collected.push(...recent);
 
   const seen = new Set<number>([opts.exclude]);
   return collected

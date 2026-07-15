@@ -107,6 +107,36 @@ test("uses the full title with GitHub hybrid issue search", async () => {
   });
 });
 
+test("ranks search hits before recency hits so they survive the count cap", async () => {
+  const make = (number: number) => ({
+    number,
+    title: `Issue ${number}`,
+    body: "",
+    html_url: `https://example.test/${number}`,
+  });
+  const octokit = {
+    request: async () => ({ data: { items: [make(5), make(2)] } }),
+    rest: {
+      issues: {
+        listForRepo: async () => ({ data: [make(2), make(3), make(4)] }),
+      },
+    },
+  } as unknown as Octokit;
+
+  const candidates = await listCandidates(octokit, repo, {
+    state: "open",
+    labels: [],
+    count: 3,
+    exclude: 1,
+    title: "Issue",
+  });
+
+  assert.deepEqual(
+    candidates.map((c) => c.number),
+    [5, 2, 3],
+  );
+});
+
 test("adds an updated qualifier to the hybrid search when since is set", async () => {
   let requestOptions: Record<string, unknown> | undefined;
   const octokit = {
