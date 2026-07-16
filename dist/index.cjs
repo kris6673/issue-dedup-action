@@ -48563,12 +48563,6 @@ function reconcileIssueVerdicts(expectedIssueNumbers, verdicts) {
     )
   };
 }
-function shouldFlushSuspects(suspectCount, remainingSlots, minimumBatch) {
-  return remainingSlots > 0 && suspectCount >= Math.max(remainingSlots, minimumBatch);
-}
-function confirmationBatchSize(remainingSlots, minimumBatch, maximumBatch) {
-  return Math.min(maximumBatch, Math.max(minimumBatch, remainingSlots * 2));
-}
 function scrubbedEnv(env) {
   const out = {};
   for (const [key, value] of Object.entries(env)) {
@@ -48906,7 +48900,6 @@ var BODY_LIMIT = 4e3;
 var SCREEN_ISSUE_LIMIT = 1500;
 var SCREEN_CANDIDATE_LIMIT = 1e3;
 var ISSUES_PER_PROMPT = 15;
-var MIN_CONFIRM_BATCH = 5;
 var DISALLOWED_LABELS = ["duplicate", "wontfix"];
 var LabelsSchema = external_exports.object({
   labels: external_exports.array(external_exports.string()).describe("Relevant label names from the provided list, most relevant first. Empty if none fit.")
@@ -48970,44 +48963,34 @@ async function findDuplicates(issue3, candidates, opts) {
   const duplicates = [];
   let suspects = [];
   const confirmSuspects = async () => {
-    const remainingSlots = opts.maxDuplicates - duplicates.length;
-    const batchSize = confirmationBatchSize(
-      remainingSlots,
-      MIN_CONFIRM_BATCH,
-      ISSUES_PER_PROMPT
-    );
-    for (const group of chunk(suspects, batchSize)) {
+    for (const candidate of suspects) {
       const { verdicts } = await runStructured({
         model: opts.confirmModel,
         provider: opts.provider,
-        label: `confirm #${group.map((candidate) => candidate.number).join(", #")}`,
+        label: `confirm #${candidate.number}`,
         schema: VerdictsSchema,
-        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for every candidate.`,
+        system: `You are a strict reviewer confirming whether a candidate GitHub issue duplicates the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for the candidate.`,
         prompt: `## New issue #${issue3.number}
 ${formatIssue(issue3)}
 
-## Candidate issues
-${group.map((candidate) => `### Issue #${candidate.number}
-${formatIssue(candidate)}`).join("\n\n")}
+## Candidate issue #${candidate.number}
+${formatIssue(candidate)}
 
-Call report_result exactly once with a verdict for every candidate issue.`
+Call report_result exactly once with a verdict for candidate issue #${candidate.number}.`
       });
-      const verdictByNumber = reconcileBatchVerdicts(group, verdicts);
-      for (const candidate of group) {
-        const confirmation = verdictByNumber.get(candidate.number);
-        if (!confirmation) continue;
-        if (confirmation.verdict !== "DUP") {
-          info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
-          continue;
-        }
-        duplicates.push({
-          number: candidate.number,
-          title: candidate.title,
-          url: candidate.html_url,
-          reasoning: confirmation.reasoning
-        });
-        if (duplicates.length >= opts.maxDuplicates) break;
+      const verdictByNumber = reconcileBatchVerdicts([candidate], verdicts);
+      const confirmation = verdictByNumber.get(candidate.number);
+      if (!confirmation) continue;
+      if (confirmation.verdict !== "DUP") {
+        info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
+        continue;
       }
+      duplicates.push({
+        number: candidate.number,
+        title: candidate.title,
+        url: candidate.html_url,
+        reasoning: confirmation.reasoning
+      });
       if (duplicates.length >= opts.maxDuplicates) break;
     }
     suspects = [];
@@ -49046,11 +49029,7 @@ Call report_result exactly once with a verdict for every candidate issue.`
       }
       if (duplicates.length >= opts.maxDuplicates) break;
     }
-    if (opts.confirmDuplicates && shouldFlushSuspects(
-      suspects.length,
-      opts.maxDuplicates - duplicates.length,
-      MIN_CONFIRM_BATCH
-    )) {
+    if (opts.confirmDuplicates && suspects.length) {
       await confirmSuspects();
     }
   }

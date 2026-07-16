@@ -65,22 +65,6 @@ export function reconcileIssueVerdicts<T extends { issue_number: number }>(
   };
 }
 
-export function shouldFlushSuspects(
-  suspectCount: number,
-  remainingSlots: number,
-  minimumBatch: number,
-): boolean {
-  return remainingSlots > 0 && suspectCount >= Math.max(remainingSlots, minimumBatch);
-}
-
-export function confirmationBatchSize(
-  remainingSlots: number,
-  minimumBatch: number,
-  maximumBatch: number,
-): number {
-  return Math.min(maximumBatch, Math.max(minimumBatch, remainingSlots * 2));
-}
-
 /**
  * Copy of the env for child processes (npm install, the Copilot CLI) with
  * action inputs and credential-looking variables removed, so a compromised
