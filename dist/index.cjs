@@ -48556,7 +48556,7 @@ function reconcileIssueVerdicts(expectedIssueNumbers, verdicts) {
   }
   return {
     byIssueNumber,
-    unknownIssueNumbers: [...unknown2],
+    unknownIssueNumbers: [...unknown2].sort((a, b) => a - b),
     ambiguousIssueNumbers: expectedIssueNumbers.filter((number4) => ambiguous.has(number4)),
     missingIssueNumbers: expectedIssueNumbers.filter(
       (number4) => !byIssueNumber.has(number4) && !ambiguous.has(number4)

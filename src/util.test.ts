@@ -37,11 +37,17 @@ test("reconcileIssueVerdicts fails closed for malformed model output", () => {
   const conflicting = { issue_number: 2, verdict: "UNI" };
   const result = reconcileIssueVerdicts(
     [1, 2, 3],
-    [one, conflicting, { issue_number: 2, verdict: "DUP" }, { issue_number: 99, verdict: "DUP" }],
+    [
+      one,
+      conflicting,
+      { issue_number: 2, verdict: "DUP" },
+      { issue_number: 99, verdict: "DUP" },
+      { issue_number: 10, verdict: "UNI" },
+    ],
   );
 
   assert.deepEqual([...result.byIssueNumber.entries()], [[1, one]]);
-  assert.deepEqual(result.unknownIssueNumbers, [99]);
+  assert.deepEqual(result.unknownIssueNumbers, [10, 99]);
   assert.deepEqual(result.ambiguousIssueNumbers, [2]);
   assert.deepEqual(result.missingIssueNumbers, [3]);
 });
