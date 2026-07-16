@@ -48866,7 +48866,7 @@ async function listCandidates(octokit, repo, opts) {
       warning(`Keyword search failed, continuing without it: ${err}`);
     }
   }
-  collected.push(...recent);
+  for (const issue3 of recent) collected.push(issue3);
   const seen = /* @__PURE__ */ new Set([opts.exclude]);
   return collected.filter((i) => !seen.has(i.number) && Boolean(seen.add(i.number))).slice(0, opts.count);
 }

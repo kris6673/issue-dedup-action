@@ -137,6 +137,39 @@ test("ranks search hits before recency hits so they survive the count cap", asyn
   );
 });
 
+test("handles recency candidates from many labels without spreading them into push", async () => {
+  const labels = Array.from({ length: 2_000 }, (_, index) => `label-${index}`);
+  const make = (number: number) => ({
+    number,
+    title: `Issue ${number}`,
+    body: "",
+    html_url: `https://example.test/${number}`,
+  });
+  const page = Array.from({ length: 100 }, (_, index) => make(index + 1));
+  const octokit = {
+    request: async () => ({ data: { items: [] } }),
+    rest: {
+      issues: {
+        listForRepo: async () => ({ data: page }),
+      },
+    },
+  } as unknown as Octokit;
+
+  const candidates = await listCandidates(octokit, repo, {
+    state: "open",
+    labels,
+    count: 100,
+    exclude: 0,
+    title: "Issue",
+  });
+
+  assert.equal(candidates.length, 100);
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.number),
+    Array.from({ length: 100 }, (_, index) => index + 1),
+  );
+});
+
 test("adds an updated qualifier to the hybrid search when since is set", async () => {
   let requestOptions: Record<string, unknown> | undefined;
   const octokit = {
