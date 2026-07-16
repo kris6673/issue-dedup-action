@@ -57,7 +57,7 @@ export function reconcileIssueVerdicts<T extends { issue_number: number }>(
 
   return {
     byIssueNumber,
-    unknownIssueNumbers: [...unknown],
+    unknownIssueNumbers: [...unknown].sort((a, b) => a - b),
     ambiguousIssueNumbers: expectedIssueNumbers.filter((number) => ambiguous.has(number)),
     missingIssueNumbers: expectedIssueNumbers.filter(
       (number) => !byIssueNumber.has(number) && !ambiguous.has(number),
