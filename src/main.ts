@@ -16,10 +16,8 @@ import {
 import {
   buildCommentBody,
   chunk,
-  confirmationBatchSize,
   parseNonNegativeInteger,
   reconcileIssueVerdicts,
-  shouldFlushSuspects,
   sinceDaysToISOString,
   truncate,
   type Duplicate,
@@ -33,7 +31,6 @@ const BODY_LIMIT = 4000;
 const SCREEN_ISSUE_LIMIT = 1500;
 const SCREEN_CANDIDATE_LIMIT = 1000;
 const ISSUES_PER_PROMPT = 15;
-const MIN_CONFIRM_BATCH = 5;
 const DISALLOWED_LABELS = ["duplicate", "wontfix"];
 
 const LabelsSchema = z.object({
@@ -118,41 +115,35 @@ async function findDuplicates(
   let suspects: IssueLite[] = [];
 
   const confirmSuspects = async (): Promise<void> => {
-    const remainingSlots = opts.maxDuplicates - duplicates.length;
-    const batchSize = confirmationBatchSize(
-      remainingSlots,
-      MIN_CONFIRM_BATCH,
-      ISSUES_PER_PROMPT,
-    );
-    for (const group of chunk(suspects, batchSize)) {
+    for (const candidate of suspects) {
       const { verdicts } = await runStructured({
         model: opts.confirmModel,
         provider: opts.provider,
-        label: `confirm #${group.map((candidate) => candidate.number).join(", #")}`,
+        label: `confirm #${candidate.number}`,
         schema: VerdictsSchema,
-        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for every candidate.`,
-        prompt: `## New issue #${issue.number}\n${formatIssue(issue)}\n\n## Candidate issues\n${group
-          .map((candidate) => `### Issue #${candidate.number}\n${formatIssue(candidate)}`)
-          .join("\n\n")}\n\nCall report_result exactly once with a verdict for every candidate issue.`,
+        system: `You are a strict reviewer confirming whether a candidate GitHub issue duplicates the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for the candidate.`,
+        prompt: `## New issue #${issue.number}
+${formatIssue(issue)}
+
+## Candidate issue #${candidate.number}
+${formatIssue(candidate)}
+
+Call report_result exactly once with a verdict for candidate issue #${candidate.number}.`,
       });
 
-      const verdictByNumber = reconcileBatchVerdicts(group, verdicts);
-
-      for (const candidate of group) {
-        const confirmation = verdictByNumber.get(candidate.number);
-        if (!confirmation) continue;
-        if (confirmation.verdict !== "DUP") {
-          core.info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
-          continue;
-        }
-        duplicates.push({
-          number: candidate.number,
-          title: candidate.title,
-          url: candidate.html_url,
-          reasoning: confirmation.reasoning,
-        });
-        if (duplicates.length >= opts.maxDuplicates) break;
+      const verdictByNumber = reconcileBatchVerdicts([candidate], verdicts);
+      const confirmation = verdictByNumber.get(candidate.number);
+      if (!confirmation) continue;
+      if (confirmation.verdict !== "DUP") {
+        core.info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
+        continue;
       }
+      duplicates.push({
+        number: candidate.number,
+        title: candidate.title,
+        url: candidate.html_url,
+        reasoning: confirmation.reasoning,
+      });
       if (duplicates.length >= opts.maxDuplicates) break;
     }
     suspects = [];
@@ -191,16 +182,7 @@ async function findDuplicates(
       if (duplicates.length >= opts.maxDuplicates) break;
     }
 
-    // Confirm once this batch could fill the remaining output slots. If the
-    // reviewer rejects suspects, keep screening later candidate batches.
-    if (
-      opts.confirmDuplicates &&
-      shouldFlushSuspects(
-        suspects.length,
-        opts.maxDuplicates - duplicates.length,
-        MIN_CONFIRM_BATCH,
-      )
-    ) {
+    if (opts.confirmDuplicates && suspects.length) {
       await confirmSuspects();
     }
   }

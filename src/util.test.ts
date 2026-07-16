@@ -4,12 +4,10 @@ import {
   COMMENT_MARKER,
   buildCommentBody,
   chunk,
-  confirmationBatchSize,
   normalizeCopilotCliVersion,
   parseNonNegativeInteger,
   reconcileIssueVerdicts,
   scrubbedEnv,
-  shouldFlushSuspects,
   sinceDaysToISOString,
   truncate,
 } from "./util.ts";
@@ -50,15 +48,6 @@ test("reconcileIssueVerdicts fails closed for malformed model output", () => {
   assert.deepEqual(result.unknownIssueNumbers, [10, 99]);
   assert.deepEqual(result.ambiguousIssueNumbers, [2]);
   assert.deepEqual(result.missingIssueNumbers, [3]);
-});
-
-test("confirmation gating batches suspects without unbounded prompts", () => {
-  assert.equal(shouldFlushSuspects(4, 3, 5), false);
-  assert.equal(shouldFlushSuspects(5, 3, 5), true);
-  assert.equal(shouldFlushSuspects(5, 0, 5), false);
-  assert.equal(confirmationBatchSize(3, 5, 15), 6);
-  assert.equal(confirmationBatchSize(1, 5, 15), 5);
-  assert.equal(confirmationBatchSize(10, 5, 15), 15);
 });
 
 test("sinceDaysToISOString accepts finite non-negative integers", () => {
