@@ -107,7 +107,7 @@ export async function listCandidates(
     }
   }
 
-  collected.push(...recent);
+  for (const issue of recent) collected.push(issue);
 
   const seen = new Set<number>([opts.exclude]);
   return collected
