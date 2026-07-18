@@ -127,7 +127,7 @@ async function findDuplicates(
         provider: opts.provider,
         label: `confirm #${batch.map((candidate) => candidate.number).join(", #")}`,
         schema: VerdictsSchema,
-        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for every candidate.`,
+        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdicts array containing one entry per candidate issue, and include each candidate's issue_number in its verdict entry.`,
         prompt: `## New issue #${issue.number}
 ${formatIssue(issue)}
 
@@ -137,7 +137,7 @@ ${batch
 ${formatIssue(candidate)}`)
           .join("\n\n")}
 
-Call report_result exactly once with a verdict for every candidate issue.`,
+Call report_result exactly once with a verdicts array containing one entry per candidate issue. Every entry must include the candidate issue_number.`,
       });
 
       const verdictByNumber = reconcileBatchVerdicts(batch, verdicts);
@@ -145,7 +145,9 @@ Call report_result exactly once with a verdict for every candidate issue.`,
         const confirmation = verdictByNumber.get(candidate.number);
         if (!confirmation) continue;
         if (confirmation.verdict !== "DUP") {
-          core.info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
+          core.info(
+            `Not confirmed by ${opts.confirmModel}: #${candidate.number} — ${confirmation.reasoning}`,
+          );
           continue;
         }
         duplicates.push({
