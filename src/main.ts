@@ -31,6 +31,7 @@ const BODY_LIMIT = 4000;
 const SCREEN_ISSUE_LIMIT = 1500;
 const SCREEN_CANDIDATE_LIMIT = 1000;
 const ISSUES_PER_PROMPT = 15;
+const CONFIRMATIONS_PER_PROMPT = 5;
 const DISALLOWED_LABELS = ["duplicate", "wontfix"];
 
 const LabelsSchema = z.object({
@@ -114,39 +115,49 @@ async function findDuplicates(
   const duplicates: Duplicate[] = [];
   let suspects: IssueLite[] = [];
 
-  const confirmSuspects = async (): Promise<void> => {
-    for (const candidate of suspects) {
+  const confirmSuspects = async (force = false): Promise<void> => {
+    if (!force && suspects.length < CONFIRMATIONS_PER_PROMPT) return;
+
+    const pending = suspects;
+    suspects = [];
+
+    for (const batch of chunk(pending, CONFIRMATIONS_PER_PROMPT)) {
       const { verdicts } = await runStructured({
         model: opts.confirmModel,
         provider: opts.provider,
-        label: `confirm #${candidate.number}`,
+        label: `confirm #${batch.map((candidate) => candidate.number).join(", #")}`,
         schema: VerdictsSchema,
-        system: `You are a strict reviewer confirming whether a candidate GitHub issue duplicates the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdicts array containing exactly one entry for the candidate.`,
+        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for every candidate.`,
         prompt: `## New issue #${issue.number}
 ${formatIssue(issue)}
 
-## Candidate issue #${candidate.number}
-${formatIssue(candidate)}
+## Candidate issues
+${batch
+          .map((candidate) => `### Issue #${candidate.number}
+${formatIssue(candidate)}`)
+          .join("\n\n")}
 
-Call report_result exactly once with a verdicts array containing exactly one entry for candidate issue #${candidate.number}.`,
+Call report_result exactly once with a verdict for every candidate issue.`,
       });
 
-      const verdictByNumber = reconcileBatchVerdicts([candidate], verdicts);
-      const confirmation = verdictByNumber.get(candidate.number);
-      if (!confirmation) continue;
-      if (confirmation.verdict !== "DUP") {
-        core.info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
-        continue;
+      const verdictByNumber = reconcileBatchVerdicts(batch, verdicts);
+      for (const candidate of batch) {
+        const confirmation = verdictByNumber.get(candidate.number);
+        if (!confirmation) continue;
+        if (confirmation.verdict !== "DUP") {
+          core.info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
+          continue;
+        }
+        duplicates.push({
+          number: candidate.number,
+          title: candidate.title,
+          url: candidate.html_url,
+          reasoning: confirmation.reasoning,
+        });
+        if (duplicates.length >= opts.maxDuplicates) break;
       }
-      duplicates.push({
-        number: candidate.number,
-        title: candidate.title,
-        url: candidate.html_url,
-        reasoning: confirmation.reasoning,
-      });
       if (duplicates.length >= opts.maxDuplicates) break;
     }
-    suspects = [];
   };
 
   for (const group of chunk(candidates, ISSUES_PER_PROMPT)) {
@@ -182,9 +193,13 @@ Call report_result exactly once with a verdicts array containing exactly one ent
       if (duplicates.length >= opts.maxDuplicates) break;
     }
 
-    if (opts.confirmDuplicates && suspects.length) {
+    if (opts.confirmDuplicates) {
       await confirmSuspects();
     }
+  }
+
+  if (opts.confirmDuplicates) {
+    await confirmSuspects(true);
   }
 
   return duplicates;
