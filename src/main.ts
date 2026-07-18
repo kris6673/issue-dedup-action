@@ -121,14 +121,14 @@ async function findDuplicates(
         provider: opts.provider,
         label: `confirm #${candidate.number}`,
         schema: VerdictsSchema,
-        system: `You are a strict reviewer confirming whether a candidate GitHub issue duplicates the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for the candidate.`,
+        system: `You are a strict reviewer confirming whether a candidate GitHub issue duplicates the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdicts array containing exactly one entry for the candidate.`,
         prompt: `## New issue #${issue.number}
 ${formatIssue(issue)}
 
 ## Candidate issue #${candidate.number}
 ${formatIssue(candidate)}
 
-Call report_result exactly once with a verdict for candidate issue #${candidate.number}.`,
+Call report_result exactly once with a verdicts array containing exactly one entry for candidate issue #${candidate.number}.`,
       });
 
       const verdictByNumber = reconcileBatchVerdicts([candidate], verdicts);
@@ -187,9 +187,6 @@ Call report_result exactly once with a verdict for candidate issue #${candidate.
     }
   }
 
-  if (opts.confirmDuplicates && duplicates.length < opts.maxDuplicates && suspects.length) {
-    await confirmSuspects();
-  }
   return duplicates;
 }
 
