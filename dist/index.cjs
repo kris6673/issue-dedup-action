@@ -48973,7 +48973,7 @@ async function findDuplicates(issue3, candidates, opts) {
         provider: opts.provider,
         label: `confirm #${batch.map((candidate) => candidate.number).join(", #")}`,
         schema: VerdictsSchema,
-        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdict for every candidate.`,
+        system: `You are a strict reviewer confirming whether candidate GitHub issues duplicate the new issue. Only answer DUP when they describe the same root problem or request; when in doubt, answer UNI. Judge every candidate independently. ${UNTRUSTED_DATA_NOTICE} Answer by calling the report_result tool exactly once with a verdicts array containing one entry per candidate issue, and include each candidate's issue_number in its verdict entry.`,
         prompt: `## New issue #${issue3.number}
 ${formatIssue(issue3)}
 
@@ -48981,14 +48981,16 @@ ${formatIssue(issue3)}
 ${batch.map((candidate) => `### Issue #${candidate.number}
 ${formatIssue(candidate)}`).join("\n\n")}
 
-Call report_result exactly once with a verdict for every candidate issue.`
+Call report_result exactly once with a verdicts array containing one entry per candidate issue. Every entry must include the candidate issue_number.`
       });
       const verdictByNumber = reconcileBatchVerdicts(batch, verdicts);
       for (const candidate of batch) {
         const confirmation = verdictByNumber.get(candidate.number);
         if (!confirmation) continue;
         if (confirmation.verdict !== "DUP") {
-          info(`Not confirmed by ${opts.confirmModel}: ${confirmation.reasoning}`);
+          info(
+            `Not confirmed by ${opts.confirmModel}: #${candidate.number} \u2014 ${confirmation.reasoning}`
+          );
           continue;
         }
         duplicates.push({
